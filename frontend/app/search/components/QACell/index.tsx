@@ -30,7 +30,7 @@ function AnswerSkeleton() {
 // Widget and/or mediums skeleton
 function WidgetSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className="grid md:grid-cols-2 grid-cols-4 gap-2">
       <div className="col-span-1">
         <div role="status" className="max-w-sm animate-pulse">
           <div className="h-16 bg-gray-200 rounded-md dark:bg-gray-700 w-auto"></div>
@@ -63,6 +63,42 @@ interface QACellProps {
   query: string;
 }
 
+function Widgets(props: Pick<QACellProps, 'mediums'>) {
+  return (
+    <div className="mb-2">
+      {props.mediums === null ? (
+        <WidgetSkeleton />
+      ) : (
+        <div className="grid md:grid-cols-2 grid-cols-4 gap-2">
+          {props.mediums.slice(0, 4).map((medium) => (
+            <div
+              key={medium.url}
+              className="h-24 md:h-48 bg-gray-200 dark:bg-gray-700 rounded-md"
+            >
+              {medium.medium === 'image' ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={medium.image}
+                  alt={medium.title}
+                  className="h-full w-full object-cover rounded-md"
+                />
+              ) : medium.medium === 'video' ? (
+                <video
+                  controls
+                  className="h-full w-full object-cover rounded-md"
+                >
+                  <source src={medium.url} type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function QACell(props: QACellProps) {
   const { answer, webSources } = props;
 
@@ -89,7 +125,7 @@ export default function QACell(props: QACellProps) {
           {props.webSources?.length !== 0 && (
             <h2 className="text-lg font-medium mb-2">Sources</h2>
           )}
-          <div className="grid grid-flow-col gap-2 px-md sm:grid-cols-2 md:px-0 md:grid-cols-4">
+          <div className="flex grid grid-flow-col gap-2 px-md sm:grid-cols-2 md:px-0 md:grid-cols-4 overflow-x-auto">
             {props.webSources === null ? (
               <>
                 <WebSourceSkeleton />
@@ -100,66 +136,43 @@ export default function QACell(props: QACellProps) {
             ) : (
               <>
                 {props.webSources.slice(0, 3).map((source) => (
-                  <Link key={source.url} href={source.url} target="_blank">
-                    <WebSourceCard
-                      key={source.url}
-                      url={source.url}
-                      title={source.title}
-                      index={source.index}
-                      content={source.content}
-                    />
-                  </Link>
+                  <div key={source.url} className="min-w-[100px] h-full">
+                    <Link key={source.url} href={source.url} target="_blank">
+                      <WebSourceCard
+                        key={source.url}
+                        url={source.url}
+                        title={source.title}
+                        index={source.index}
+                        content={source.content}
+                      />
+                    </Link>
+                  </div>
                 ))}
               </>
             )}
             {props.webSources !== null && props.webSources.length > 3 && (
-              <WebSourceMoreCard webSources={props.webSources.slice(3)} />
+              <div className="min-w-[100px] h-full">
+                <WebSourceMoreCard webSources={props.webSources.slice(3)} />
+              </div>
             )}
           </div>
         </div>
 
         <>
           <h2 className="text-lg font-medium mb-2">Answer</h2>
+          <div className="md:hidden">
+            <Widgets mediums={props.mediums} />
+          </div>
           {props.answer === null ? (
             <AnswerSkeleton />
           ) : (
-            <p className="mb-4">
-              <RichContentRenderer richContent={formattedAnswer} />
-            </p>
+            <RichContentRenderer richContent={formattedAnswer} />
           )}
         </>
       </div>
-      <div className="col-span-4">
+      <div className="col-span-4 hidden md:block">
         <div className="sticky top-4 space-y-4">
-          {props.mediums === null ? (
-            <WidgetSkeleton />
-          ) : (
-            <div className="grid grid-cols-2 gap-4">
-              {props.mediums.slice(0, 4).map((medium) => (
-                <div
-                  key={medium.url}
-                  className="h-48 bg-gray-200 dark:bg-gray-700 rounded-md"
-                >
-                  {medium.medium === 'image' ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={medium.image}
-                      alt={medium.title}
-                      className="h-full w-full object-cover rounded-md"
-                    />
-                  ) : medium.medium === 'video' ? (
-                    <video
-                      controls
-                      className="h-full w-full object-cover rounded-md"
-                    >
-                      <source src={medium.url} type="video/mp4" />
-                      Your browser does not support the video tag.
-                    </video>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          )}
+          <Widgets mediums={props.mediums} />
         </div>
       </div>
     </div>

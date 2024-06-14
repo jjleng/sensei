@@ -22,6 +22,7 @@ export default function SearchInput(props: SearchInputProps) {
 
   return (
     <form
+      className="w-full"
       id="search-form"
       onSubmit={(e) => {
         e.preventDefault();

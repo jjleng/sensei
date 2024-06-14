@@ -51,7 +51,7 @@ export function WebSourceMoreCard({ webSources }: { webSources: WebSource[] }) {
   // Get at most 5 web sources
   const sources = webSources.slice(0, 5);
   return (
-    <div className="p-2 flex flex-col items-start justify-between bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md md:w-auto transition-colors cursor-pointer">
+    <div className="p-2 flex flex-col items-start justify-between bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md md:w-auto transition-colors cursor-pointer w-full h-full">
       <div className="flex items-center space-x-2">
         {sources.map((source) => (
           <div
