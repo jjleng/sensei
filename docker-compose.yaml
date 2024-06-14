@@ -1,0 +1,20 @@
+version: '3.9'
+
+services:
+  redis:
+    image: redis:alpine
+    ports:
+      - 6379:6379
+  searxng:
+    image: searxng/searxng:latest
+    volumes:
+      - ./ops/searxng:/etc/searxng
+    ports:
+      - 8080:8080
+    environment:
+      - SEARXNG_URL=http://localhost:8080/
+      - SEARXNG_SECRET=SQRXTEUTa%SMuWDiF_kyH&,:EqBpTV
+      - SEARXNG_REDIS_URL=redis://redis:6379/0
+      - SEARXNG_SETTINGS_PATH=/etc/searxng/settings.yml
+    depends_on:
+      - redis

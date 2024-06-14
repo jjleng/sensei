@@ -1,0 +1,13 @@
+# Details can be found here https://github.com/searxng/searxng/blob/master/searx/settings.yml
+use_default_settings: true
+
+server:
+  image_proxy: true
+
+search:
+  formats:
+    - html
+    - json
+
+outgoing:
+  request_timeout: 5.0

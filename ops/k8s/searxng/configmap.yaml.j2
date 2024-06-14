@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: searxng-config
+data:
+  settings.yml: |
+    use_default_settings: true
+    server:
+        limiter: true
+        image_proxy: true
+        bind_address: "0.0.0.0"
+    search:
+      safe_search: {{ searxng_safe_search | default(1) }}
+      formats:
+        - json
+    outgoing:
+      request_timeout: 5.0

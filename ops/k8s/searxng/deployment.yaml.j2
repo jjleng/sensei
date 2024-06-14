@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: searxng
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: searxng
+  template:
+    metadata:
+      labels:
+        app: searxng
+    spec:
+      containers:
+      - name: searxng
+        image: searxng/searxng:latest
+        env:
+        - name: SEARXNG_URL
+          value: "http://searxng"
+        - name: SEARXNG_SETTINGS_PATH
+          value: "/etc/searxng/settings.yml"
+        - name: SEARXNG_SECRET
+          value: "{{ searxng_secret }}"
+        - name: SEARXNG_REDIS_URL
+          value: "redis://{{ redis_name }}:6379/0"
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/searxng/settings.yml
+          subPath: settings.yml
+      volumes:
+      - name: config-volume
+        configMap:
+          name: searxng-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: searxng
+spec:
+  selector:
+    app: searxng
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080

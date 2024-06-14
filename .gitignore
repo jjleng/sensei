@@ -1,0 +1,20 @@
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+
+# C extensions
+*.so
+
+# Translations
+*.mo
+*.pot
+
+# Sphinx documentation
+docs/_build/
+docs/_output/
+
+# Miscs
+.bin/
+cluster*.yaml

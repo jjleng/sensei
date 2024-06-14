@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ redis_name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ redis_name }}
+  template:
+    metadata:
+      labels:
+        app: {{ redis_name }}
+    spec:
+      containers:
+      - name: {{ redis_name }}
+        image: redis:latest
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ redis_name }}
+spec:
+  selector:
+    app: {{ redis_name }}
+  ports:
+    - protocol: TCP
+      port: 6379

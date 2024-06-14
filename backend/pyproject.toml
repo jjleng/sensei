@@ -1,0 +1,40 @@
+[tool.poetry]
+name = "sensei-search"
+version = "0.1.0"
+description = ""
+authors = ["Jijun Leng"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+python-dotenv = "^1.0.1"
+openai = "^1.30.5"
+loguru = "^0.7.2"
+fastapi = "^0.111.0"
+python-socketio = "^5.11.2"
+uvicorn = "^0.30.1"
+aiohttp = "^3.9.5"
+trafilatura = "^1.10.0"
+redis = "^5.0.5"
+
+[tool.mypy]
+ignore_missing_imports = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+plugins = "pydantic.mypy"
+warn_unused_configs = true
+
+[tool.isort]
+profile = "black"
+
+
+[tool.poetry.group.dev.dependencies]
+isort = "^5.13.2"
+black = "^24.4.2"
+mypy = "^1.10.0"
+jinja2 = "^3.1.4"
+paka = "^0.1.9"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
