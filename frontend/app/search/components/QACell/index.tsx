@@ -73,7 +73,7 @@ function Widgets(props: Pick<QACellProps, 'mediums'>) {
           {props.mediums.slice(0, 4).map((medium) => (
             <div
               key={medium.url}
-              className="h-24 md:h-48 bg-gray-200 dark:bg-gray-700 rounded-md"
+              className="h-24 md:h-48 bg-gray-200 dark:bg-gray-700 rounded-md overflow-hidden"
             >
               {medium.medium === 'image' ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -83,13 +83,27 @@ function Widgets(props: Pick<QACellProps, 'mediums'>) {
                   className="h-full w-full object-cover rounded-md"
                 />
               ) : medium.medium === 'video' ? (
-                <video
-                  controls
-                  className="h-full w-full object-cover rounded-md"
-                >
-                  <source src={medium.url} type="video/mp4" />
-                  Your browser does not support the video tag.
-                </video>
+                medium.url.includes('youtube') ? (
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    src={`https://www.youtube.com/embed/${new URLSearchParams(
+                      new URL(medium.url).search
+                    ).get('v')}`}
+                    title={medium.title}
+                    style={{ border: 0 }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  ></iframe>
+                ) : (
+                  <video
+                    controls
+                    className="h-full w-full object-cover rounded-md"
+                  >
+                    <source src={medium.url} type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                )
               ) : null}
             </div>
           ))}
