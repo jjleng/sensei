@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import Link from 'next/link';
 import WebSourceCard, { WebSourceMoreCard } from './WebSourceCard';
 import { MediumImage, MediumVideo, WebSource } from '../../types';
 import RichContentRenderer from '../../../components/RichContentRenderer';
@@ -99,13 +100,15 @@ export default function QACell(props: QACellProps) {
             ) : (
               <>
                 {props.webSources.slice(0, 3).map((source) => (
-                  <WebSourceCard
-                    key={source.url}
-                    url={source.url}
-                    title={source.title}
-                    index={source.index}
-                    content={source.content}
-                  />
+                  <Link key={source.url} href={source.url} target="_blank">
+                    <WebSourceCard
+                      key={source.url}
+                      url={source.url}
+                      title={source.title}
+                      index={source.index}
+                      content={source.content}
+                    />
+                  </Link>
                 ))}
               </>
             )}
