@@ -46,10 +46,6 @@ body blockquote {
   @apply border-l-4 border-gray-300 pl-4 italic;
 }
 
-body code {
-  @apply bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded;
-}
-
 @layer utilities {
   .text-balance {
     text-wrap: balance;
