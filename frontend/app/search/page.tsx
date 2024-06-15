@@ -174,16 +174,6 @@ export default function Search() {
     }
   }, [qaThread]);
 
-  // When the component is unmounted, close the socket connection
-  useEffect(() => {
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.close();
-        socketRef.current = null;
-      }
-    };
-  }, []);
-
   return (
     <div>
       {qaThread.map((qa, index) => (
