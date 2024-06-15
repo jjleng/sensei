@@ -1,10 +1,28 @@
 version: '3.9'
 
 services:
+  frontend:
+    volumes:
+      - ./frontend:/app
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - 3000:3000
+    depends_on:
+      - backend
+  backend:
+    volumes:
+      - ./backend:/app
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - 8000:8000
+    depends_on:
+      - redis
   redis:
     image: redis:alpine
-    ports:
-      - 6379:6379
   searxng:
     image: searxng/searxng:latest
     volumes:

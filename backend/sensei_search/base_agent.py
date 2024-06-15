@@ -11,6 +11,7 @@ class EventEnum(str, Enum):
     """
     Enum for the socket.io events emitted the server.
     """
+
     web_results = "web_results"
     medium_results = "medium_results"
     answer = "answer"
@@ -20,6 +21,7 @@ class EventEmitter(Protocol):
     """
     A protocol for the EventEmitter class.
     """
+
     async def emit(self, event: str, data: Dict): ...
 
 

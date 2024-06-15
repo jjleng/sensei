@@ -11,6 +11,9 @@ importers:
       immer:
         specifier: ^10.1.1
         version: 10.1.1
+      katex:
+        specifier: ^0.16.10
+        version: 0.16.10
       next:
         specifier: 14.2.3
         version: 14.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)

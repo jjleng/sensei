@@ -144,7 +144,7 @@ class SamuraiAgent(BaseAgent):
             tasks.append(fetch_page(result["url"]))
 
         html_web_pages = await asyncio.gather(*tasks)
-        return [trafilatura.extract(page or '') for page in html_web_pages]
+        return [trafilatura.extract(page or "") for page in html_web_pages]
 
     async def gen_answer(self, web_pages: List[str]):
         """

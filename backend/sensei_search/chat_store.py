@@ -1,4 +1,5 @@
 import json
+import os
 from typing import List, TypedDict, Union
 
 import redis.asyncio as redis
@@ -42,6 +43,7 @@ class ChatStore:
     """
     This class is responsible for storing and fetching chat history using Redis.
     """
+
     _instance = None
 
     def __new__(cls, *args, **kwargs):
@@ -53,7 +55,7 @@ class ChatStore:
     def __init__(self):
         if not hasattr(self, "redis"):
             self.redis = redis.Redis(
-                host="localhost", port=6379, db=0, decode_responses=True
+                host=os.environ["REDIS_HOST"], port=6379, db=0, decode_responses=True
             )
 
     def _get_key(self, thread_id: str) -> str:
