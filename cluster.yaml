@@ -1,0 +1,117 @@
+version: "1.3"
+aws:
+  cluster:
+    name: sensei # Use a name in lowercase letters with hyphens (kebab-case)
+    region: us-west-2
+    nodeType: t3a.medium
+    minNodes: 2
+    maxNodes: 4 # These nodes will host serverless functions and other essential loads
+  prometheus:
+    enabled: true # Enable metrics scraping with Prometheus
+  tracing:
+    enabled: false
+  mixedModelGroups: # A mixed model group can include both on-demand and spot nodes
+    - name: mistral-7b-instruct # Specify a name for the model group
+      nodeType: g6.xlarge
+      gpu:
+        enabled: true # This model group runs on GPU-enabled instances
+        diskSize: 80
+      baseInstances: 0 # Fail-safe instances, always run on-demand instances
+      maxOnDemandInstances: 1 # Maximum number of on-demand instances, used as a fallback if spot instances are not available
+      spot:
+        minInstances: 1
+        maxInstances: 1 # Prefer to run the inference backend on spot instances
+      runtime:
+        image: vllm/vllm-openai:v0.4.3 # Use vLLM backend
+        command:
+          - python3
+          - -O
+          - -u
+          - -m
+          - vllm.entrypoints.openai.api_server
+          - --host
+          - 0.0.0.0
+          - --served-model-name
+          - mistral-7b-instruct
+          - --model
+          - /data
+          - --port
+          - "8000"
+          - --max-model-len
+          - "16384"
+        env:
+          - name: HF_TOKEN # Required to download model weights from a gated Hugging Face repo
+            value: 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
+        readinessProbe: # Optional. The readiness probe for the runtime image
+          httpGet: # The HTTP readiness probe
+            path: /health # The path to check
+            port: 8000 # The port to check
+            scheme: HTTP
+          initialDelaySeconds: 60 # The initial delay before checking
+          periodSeconds: 5 # The period to check
+          failureThreshold: 5
+          successThreshold: 1
+          timeoutSeconds: 30
+      model:
+        hfRepoId: mistralai/Mistral-7B-Instruct-v0.3 # Specify the Hugging Face model to run
+        useModelStore: true # Don't save models to s3
+      autoScaleTriggers:
+        - type: prometheus
+          metadata:
+            serverAddress: http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090 # Prometheus endpoint
+            metricName: latency_p95
+            threshold: '20000' # Set to 20s, tune as needed
+            query: | # Trigger scaling if p95 latency exceeds 20s
+              histogram_quantile(0.95, sum(rate(istio_request_duration_milliseconds_bucket{destination_service="mistral-7b-instruct.default.svc.cluster.local"}[5m])) by (le))
+  modelGroups:
+    - name: command-r # Specify a name for the model group
+      nodeType: g6.12xlarge
+      gpu:
+        enabled: true # This model group runs on GPU-enabled instances
+        diskSize: 110
+      minInstances: 1
+      maxInstances: 1
+      runtime:
+        image: vllm/vllm-openai:v0.4.3 # Use vLLM backend
+        command:
+          - python3
+          - -O
+          - -u
+          - -m
+          - vllm.entrypoints.openai.api_server
+          - --host
+          - 0.0.0.0
+          - --served-model-name
+          - command-r
+          - --model
+          - /data
+          - --port
+          - "8000"
+          - --max-model-len
+          - "30000"
+          - --tensor-parallel-size
+          - "4"
+        env:
+          - name: HF_TOKEN # Required to download model weights from a gated Hugging Face repo
+            value: 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
+        readinessProbe: # Optional. The readiness probe for the runtime image
+          httpGet: # The HTTP readiness probe
+            path: /health # The path to check
+            port: 8000 # The port to check
+            scheme: HTTP
+          initialDelaySeconds: 60 # The initial delay before checking
+          periodSeconds: 5 # The period to check
+          failureThreshold: 5
+          successThreshold: 1
+          timeoutSeconds: 30
+      model:
+        hfRepoId: TechxGenus/c4ai-command-r-v01-GPTQ # Specify the Hugging Face model to run
+        useModelStore: true # Don't save models to s3
+      autoScaleTriggers:
+        - type: prometheus
+          metadata:
+            serverAddress: http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090 # Prometheus endpoint
+            metricName: latency_p95
+            threshold: '20000' # Set to 20s, tune as needed
+            query: | # Trigger scaling if p95 latency exceeds 20s
+              histogram_quantile(0.95, sum(rate(istio_request_duration_milliseconds_bucket{destination_service="command-r.default.svc.cluster.local"}[5m])) by (le))
