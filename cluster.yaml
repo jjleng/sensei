@@ -41,7 +41,7 @@ aws:
           - "16384"
         env:
           - name: HF_TOKEN # Required to download model weights from a gated Hugging Face repo
-            value: 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
+            value: <YOUR_HF_TOKEN>!!!!!!!!!!!!!!!!!!!!!!!!!!!
         readinessProbe: # Optional. The readiness probe for the runtime image
           httpGet: # The HTTP readiness probe
             path: /health # The path to check
@@ -93,7 +93,7 @@ aws:
           - "4"
         env:
           - name: HF_TOKEN # Required to download model weights from a gated Hugging Face repo
-            value: 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
+            value: <YOUR_HF_TOKEN>!!!!!!!!!!!!!!!!!!!!!!!!!!!
         readinessProbe: # Optional. The readiness probe for the runtime image
           httpGet: # The HTTP readiness probe
             path: /health # The path to check
