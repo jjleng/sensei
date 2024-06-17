@@ -3,7 +3,7 @@ version: '3.9'
 services:
   frontend:
     volumes:
-      - ./frontend:/app
+      - ./frontend/app:/app/app
     build:
       context: ./frontend
       dockerfile: Dockerfile

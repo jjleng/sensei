@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from loguru import logger
 
 
 def load_envs() -> None:
@@ -11,6 +12,7 @@ def load_envs() -> None:
     base_dir = Path(__file__).resolve().parent.parent
 
     env = os.getenv("ENV", "development")
+    logger.info(f"Loading environment: {env}")
 
     if env == "development":
         dotenv_path = base_dir / ".env.development"
