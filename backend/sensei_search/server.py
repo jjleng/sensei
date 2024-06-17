@@ -23,7 +23,6 @@ app = FastAPI()
 sio = socketio.AsyncServer(
     async_mode="asgi",
     cors_allowed_origins=["http://sensei-frontend.default.52.24.120.109.sslip.io", "http://localhost", "http://localhost:3000"],
-    client_manager=socketio.AsyncRedisManager(f'redis://{os.environ["REDIS_HOST"]}:6379/0')
 )
 
 sio_asgi_app = socketio.ASGIApp(socketio_server=sio, other_asgi_app=app)

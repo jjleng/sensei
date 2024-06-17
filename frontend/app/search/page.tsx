@@ -92,7 +92,9 @@ export default function Search() {
         socketRef.current.close();
       }
 
-      const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_HOST!);
+      const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_HOST!, {
+        transports: ['websocket'],
+      });
 
       newSocket.on('connect', () => {
         // Send the query to the server once the connection is established
