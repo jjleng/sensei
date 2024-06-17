@@ -13,7 +13,7 @@ requirements.txt:
 
 deploy-backend:
 	cd ./backend && \
-	paka function deploy --name sensei-backend --source . --entrypoint serve --cluster sensei
+	paka function deploy --name sensei-backend --source . --entrypoint serve --cluster sensei --scale-down-delay 5m
 
 deploy-frontend:
 	cd ./frontend && \
