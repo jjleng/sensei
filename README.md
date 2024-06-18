@@ -16,7 +16,7 @@ Sensei Search is built using the following technologies:
 - LLMs: Mistral-7b and Command-R
 - Search: SearxNG
 - Memory: Redis
-- Deployment: AWS, Paka
+- Deployment: AWS, [Paka](https://github.com/jjleng/paka)
 
 ## How to Run Sensei Search
 
