@@ -1,8 +1,9 @@
 import json
 import os
-from typing import List, TypedDict, Union
+from typing import List, Union
 
 import redis.asyncio as redis
+from typing_extensions import TypedDict
 
 from sensei_search.logger import logger
 

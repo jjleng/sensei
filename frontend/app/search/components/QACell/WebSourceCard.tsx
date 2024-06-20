@@ -19,7 +19,7 @@ function extractMainDomain(hostname: string): string | null {
   }
 }
 
-export default function WebSourceCard(props: WebSource) {
+export default function WebSourceCard(props: WebSource & { index: number }) {
   const url = new URL(props.url);
   const domain = url.hostname;
   return (

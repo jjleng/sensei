@@ -1,14 +1,21 @@
 'use client';
 
 import { v4 as uuidv4 } from 'uuid';
-import React, { useEffect, useRef, useState, useContext } from 'react';
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useContext,
+  useCallback,
+} from 'react';
 import { produce } from 'immer';
-import SearchInput from './components/SearchInput';
-import QACell from './components/QACell';
+import { useSearchParams, useRouter } from 'next/navigation';
+import SearchInput from '@/search/components/SearchInput';
+import QACell from '@/search/components/QACell';
 import { io, Socket } from 'socket.io-client';
-import { useToast } from '../hooks/use-toast';
-import { WebSource, MediumImage, MediumVideo } from './types';
-import Context from '../context';
+import { useToast } from '@/hooks/use-toast';
+import { WebSource, MediumImage, MediumVideo } from '@/search/types';
+import Context from '@/context';
 
 // Query and Answer
 interface QA {
@@ -26,12 +33,19 @@ interface QA {
   mediums: (MediumImage | MediumVideo)[] | null;
 }
 
+interface QueryParams {
+  [key: string]: string | undefined | null;
+}
+
 export default function Search() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const threadIdParam = searchParams.get('threadId');
   // Conversation thread ID
   // Here, we generate a new thread ID for each page refresh. If the thread ID doesn't exist, server will crate a new thread.
   // Client could also choose to send in an existing thread ID to continue the conversation.
   // Ideally, the thread ID should be generated on the server and sent to the client. But for now, this is not the case.
-  const threadId = useRef(uuidv4());
+  const threadId = useRef(threadIdParam ?? uuidv4());
 
   // Store the websocket
   const socketRef = useRef<Socket | null>(null);
@@ -51,6 +65,65 @@ export default function Search() {
   const endOfList = useRef<HTMLDivElement>(null);
 
   const { addToast } = useToast();
+
+  const updateQueryString = useCallback(
+    (newParams: QueryParams) => {
+      const currentParams = new URLSearchParams(searchParams.toString());
+
+      Object.keys(newParams).forEach((key) => {
+        if (newParams[key] !== undefined && newParams[key] !== null) {
+          currentParams.set(key, newParams[key]!);
+        } else {
+          currentParams.delete(key);
+        }
+      });
+
+      router.push(`?${currentParams.toString()}`);
+    },
+    [router, searchParams]
+  );
+
+  useEffect(() => {
+    if (threadIdParam) {
+      return;
+    }
+
+    // Otherwise, we want to set threadId in query string
+    updateQueryString({ threadId: threadId.current });
+  }, [threadIdParam, updateQueryString]);
+
+  // TODO: instead of the client side fetching, move this to a server component
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_SOCKET_HOST!}/threads/${threadId.current}`
+        );
+        if (!response.ok) {
+          throw new Error('Failed to fetch the thread');
+        }
+
+        const result = await response.json();
+        const updatedResult = result.map(({ web_results, ...rest }: any) => ({
+          webSources: web_results,
+          ...rest,
+        }));
+        setQAThread(
+          produce((draft) => {
+            const existingIds = new Set(draft.map((item) => item.id));
+            const uniqueResults = updatedResult.filter(
+              (result: any) => !existingIds.has(result.id)
+            );
+            draft.unshift(...uniqueResults);
+          })
+        );
+      } catch (error) {
+        addToast('Failed to fetch the thread', 'error');
+      }
+    };
+
+    fetchData();
+  }, [addToast]);
 
   useEffect(() => {
     // Search will be done over a websocket connection.
@@ -110,10 +183,7 @@ export default function Search() {
             if (draft.length === 0) return;
 
             const lastQA = draft[draft.length - 1];
-            lastQA.webSources = (data as WebSource[]).map((source, index) => ({
-              ...source,
-              index: index + 1,
-            }));
+            lastQA.webSources = data;
           })
         );
       });
@@ -124,12 +194,7 @@ export default function Search() {
             if (draft.length === 0) return;
 
             const lastQA = draft[draft.length - 1];
-            lastQA.mediums = (data as (MediumImage | MediumVideo)[]).map(
-              (source, index) => ({
-                ...source,
-                index: index + 1,
-              })
-            );
+            lastQA.mediums = data;
           })
         );
       });

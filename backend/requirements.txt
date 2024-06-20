@@ -982,9 +982,9 @@ trafilatura==1.10.0 ; python_version >= "3.9" and python_version < "4.0" \
 typer==0.12.3 ; python_version >= "3.9" and python_version < "4.0" \
     --hash=sha256:070d7ca53f785acbccba8e7d28b08dcd88f79f1fbda035ade0aecec71ca5c914 \
     --hash=sha256:49e73131481d804288ef62598d97a1ceef3058905aa536a1134f90891ba35482
-typing-extensions==4.12.0 ; python_version >= "3.9" and python_version < "4.0" \
-    --hash=sha256:8cbcdc8606ebcb0d95453ad7dc5065e6237b6aa230a31e81d0f440c30fed5fd8 \
-    --hash=sha256:b349c66bea9016ac22978d800cfff206d5f9816951f12a7d0ec5578b0a819594
+typing-extensions==4.12.2 ; python_version >= "3.9" and python_version < "4.0" \
+    --hash=sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d \
+    --hash=sha256:1a7ead55c7e559dd4dee8856e3a88b41225abfe1ce8df57b7c13915fe121ffb8
 tzdata==2024.1 ; python_version >= "3.9" and python_version < "4.0" and platform_system == "Windows" \
     --hash=sha256:2674120f8d891909751c38abcdfd386ac0a5a1127954fbc332af6b5ceae07efd \
     --hash=sha256:9068bc196136463f5245e51efda838afa15aaeca9903f49050dfa2679db4d252

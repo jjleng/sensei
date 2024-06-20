@@ -149,14 +149,14 @@ export default function QACell(props: QACellProps) {
               </>
             ) : (
               <>
-                {props.webSources.slice(0, 3).map((source) => (
+                {props.webSources.slice(0, 3).map((source, index) => (
                   <div key={source.url} className="min-w-[100px] h-full">
                     <Link key={source.url} href={source.url} target="_blank">
                       <WebSourceCard
                         key={source.url}
                         url={source.url}
                         title={source.title}
-                        index={source.index}
+                        index={index + 1}
                         content={source.content}
                       />
                     </Link>
