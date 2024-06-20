@@ -23,7 +23,7 @@ export default function WebSourceCard(props: WebSource & { index: number }) {
   const url = new URL(props.url);
   const domain = url.hostname;
   return (
-    <div className="p-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md md:w-auto transition-colors cursor-pointer h-full">
+    <div className="p-2 bg-accent hover:bg-input dark:hover:bg-accent/50 rounded-md md:w-auto transition-colors cursor-pointer h-full">
       <p className="text-sm text-text-light dark:text-text-dark line-clamp-2">
         {props.title}
       </p>
@@ -51,7 +51,7 @@ export function WebSourceMoreCard({ webSources }: { webSources: WebSource[] }) {
   // Get at most 5 web sources
   const sources = webSources.slice(0, 5);
   return (
-    <div className="p-2 flex flex-col items-start justify-between bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md md:w-auto transition-colors cursor-pointer w-full h-full">
+    <div className="p-2 flex flex-col items-start justify-between bg-accent hover:bg-input dark:hover:bg-accent/50 rounded-md md:w-auto transition-colors cursor-pointer w-full h-full">
       <div className="flex items-center space-x-2">
         {sources.map((source) => (
           <div

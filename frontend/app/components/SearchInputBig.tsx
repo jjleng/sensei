@@ -35,23 +35,21 @@ const SearchInputBig = (props: SearchInputBigProps) => {
   const disabled = !!props.disabled || !value;
 
   return (
-    <div className="flex flex-col items-center p-4 px-2 bg-white dark:bg-gray-800 rounded-md w-full max-w-2xl border border-2 border-gray-200 dark:border-gray-700">
+    <div className="flex flex-col items-center p-4 px-2 rounded-md w-full max-w-2xl border border-2">
       <textarea
         value={value}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         style={{ maxHeight: maxHeight }}
-        className={`w-full p-2 bg-white dark:bg-gray-800 rounded-md focus:outline-none overflow-y-auto resize-none `}
+        className={`w-full p-2 bg-background rounded-md focus:outline-none overflow-y-auto resize-none `}
         placeholder={props.placeholder || 'Ask anything...'}
       />
       <div className="w-full flex justify-between mt-2">
         <div></div>
         <button
           onClick={triggerSearch}
-          className={`ml-2 p-2 text-white rounded-full flex items-center justify-center ${
-            !disabled
-              ? 'bg-primary text-white hover:opacity-50'
-              : 'bg-gray-100 text-gray-600'
+          className={`ml-2 p-2 rounded-full flex items-center justify-center ${
+            !disabled ? 'bg-brand hover:opacity-75' : 'bg-muted'
           }`}
           disabled={disabled}
         >
@@ -61,7 +59,9 @@ const SearchInputBig = (props: SearchInputBigProps) => {
             viewBox="0 0 24 24"
             strokeWidth={2}
             stroke="currentColor"
-            className={`w-4 h-4 ${!disabled ? 'text-white' : 'text-gray-600'}`}
+            className={`w-4 h-4 ${
+              !disabled ? 'text-brand-foreground' : 'text-muted-foreground'
+            }`}
           >
             <path
               strokeLinecap="round"
