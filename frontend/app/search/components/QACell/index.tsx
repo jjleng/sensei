@@ -1,8 +1,10 @@
 import React, { useMemo } from 'react';
 import Link from 'next/link';
-import WebSourceCard, { WebSourceMoreCard } from './WebSourceCard';
-import { MediumImage, MediumVideo, WebSource } from '../../types';
-import RichContentRenderer from '../../../components/RichContentRenderer';
+import WebSourceCard, {
+  WebSourceMoreCard,
+} from '@/search/components/QACell/WebSourceCard';
+import { MediumImage, MediumVideo, WebSource } from '@/search/types';
+import RichContentRenderer from '@/components/RichContentRenderer';
 
 function WebSourceSkeleton() {
   return (
@@ -166,7 +168,11 @@ export default function QACell(props: QACellProps) {
             )}
             {props.webSources !== null && props.webSources.length > 3 && (
               <div className="min-w-[100px] h-full">
-                <WebSourceMoreCard webSources={props.webSources.slice(3)} />
+                <WebSourceMoreCard
+                  webSources={props.webSources
+                    .slice(3)
+                    .map((source, index) => ({ ...source, index: index + 4 }))}
+                />
               </div>
             )}
           </div>
