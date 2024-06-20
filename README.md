@@ -2,13 +2,16 @@
 
 Sensei Search is an AI-powered tool designed to deliver the relevant search results.
 
-## Demo
+## 🎥 Demo
 http://sensei-frontend.default.52.24.120.109.sslip.io/
 
-## Screenshots
+## 📸 Screenshots
 ![Screenshot](./docs/screenshot.png)
 
-## Tech Stack
+## 📌 Latest Updates
+- 06/19/2024 - Sharable link of search history
+
+## 🛠️ Tech Stack
 Sensei Search is built using the following technologies:
 
 - Frontend: Next.js, Tailwind CSS
@@ -18,7 +21,7 @@ Sensei Search is built using the following technologies:
 - Memory: Redis
 - Deployment: AWS, [Paka](https://github.com/jjleng/paka)
 
-## How to Run Sensei Search
+## 🏃‍♂️ How to Run Sensei Search
 
 You can run Sensei Search either locally on your machine or in the cloud.
 
