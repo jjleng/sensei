@@ -9,6 +9,15 @@ const config = {
     './src/**/*.{ts,tsx}',
   ],
   prefix: '',
+  variants: {
+    extend: {
+      ringWidth: ['focus-visible'],
+      ringColor: ['focus-visible'],
+      ringOffsetWidth: ['focus-visible'],
+      ringOffsetColor: ['focus-visible'],
+      outline: ['focus-visible'],
+    },
+  },
   theme: {
     container: {
       center: true,

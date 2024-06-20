@@ -244,7 +244,7 @@ function SearchPage() {
   }, [qaThread]);
 
   return (
-    <div>
+    <>
       {qaThread.map((qa, index) => (
         <React.Fragment key={qa.id}>
           {index !== 0 && <Separator className="my-4" />}
@@ -272,7 +272,7 @@ function SearchPage() {
         </div>
         <div className="col-span-4"></div>
       </div>
-    </div>
+    </>
   );
 }
 
