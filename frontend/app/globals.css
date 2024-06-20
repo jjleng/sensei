@@ -78,5 +78,36 @@
   }
   body {
     @apply bg-background text-foreground;
+    line-height: 1.5;
+  }
+  body h1 {
+    @apply text-lg font-medium mt-4 mb-2;
+  }
+
+  body h2 {
+    @apply text-lg font-medium mt-4 mb-2;
+  }
+
+  body h3 {
+    @apply text-lg font-medium mt-4 mb-2;
+  }
+
+  body p {
+    @apply mt-4 mb-4;
+  }
+
+  body ul,
+  body ol {
+    @apply list-disc list-inside ml-4 mt-4 mb-4;
+  }
+
+  body blockquote {
+    @apply border-l-4 border-gray-300 pl-4 italic;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
   }
 }
