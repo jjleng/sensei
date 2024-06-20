@@ -7,6 +7,7 @@ import React, {
   useState,
   useContext,
   useCallback,
+  Suspense,
 } from 'react';
 import { produce } from 'immer';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -37,7 +38,7 @@ interface QueryParams {
   [key: string]: string | undefined | null;
 }
 
-export default function Search() {
+export function SearchPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const threadIdParam = searchParams.get('threadId');
@@ -271,5 +272,14 @@ export default function Search() {
         <div className="col-span-4"></div>
       </div>
     </div>
+  );
+}
+
+export default function Search() {
+  return (
+    // TODO: add fallback
+    <Suspense fallback={<div></div>}>
+      <SearchPage />
+    </Suspense>
   );
 }

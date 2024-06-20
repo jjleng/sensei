@@ -267,7 +267,7 @@ class SamuraiAgent(BaseAgent):
             "thread_id": self.thread_id,
             "mediums": mediums,
             "web_results": web_results,
-            "query": query,
+            "query": user_message,
             "answer": answer,
         }
         await chat_store.save_chat_history(self.thread_id, chat_history)
