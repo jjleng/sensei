@@ -29,14 +29,14 @@ export default function SearchInput(props: SearchInputProps) {
         triggerSearch();
       }}
     >
-      <div className="flex items-center w-full p-1 bg-white rounded-full shadow-sm border border-gray-200 dark:border-gray-700">
+      <div className="flex items-center w-full p-1 bg-background rounded-full border">
         <input
           onChange={(e) => {
             setValue(e.target.value);
           }}
           value={value}
           type="text"
-          className="flex-grow px-4 py-2 text-gray-700 bg-white border-none rounded-full focus:outline-none"
+          className="flex-grow px-4 py-2 text-secondary-foreground bg-background border-none rounded-full focus:outline-none"
           placeholder={props.placeholder || 'Ask anything...'}
         />
         <div className="flex items-center space-x-2">
@@ -44,15 +44,13 @@ export default function SearchInput(props: SearchInputProps) {
             type="submit"
             form="search-form"
             className={`flex items-center justify-center w-10 h-10 rounded-full ${
-              !disabled
-                ? 'bg-primary text-white hover:opacity-50'
-                : 'bg-gray-100 text-gray-600'
+              !disabled ? 'bg-brand hover:opacity-75' : 'bg-muted'
             }`}
             disabled={disabled}
           >
             <svg
               className={`w-5 h-5 ${
-                !disabled ? 'text-white' : 'text-gray-600'
+                !disabled ? 'text-brand-foreground' : 'text-muted-foreground'
               }`}
               fill="none"
               stroke="currentColor"

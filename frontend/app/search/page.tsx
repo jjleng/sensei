@@ -11,6 +11,7 @@ import React, {
 } from 'react';
 import { produce } from 'immer';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { Separator } from '@/components/ui/Separator';
 import SearchInput from '@/search/components/SearchInput';
 import QACell from '@/search/components/QACell';
 import { io, Socket } from 'socket.io-client';
@@ -246,7 +247,7 @@ function SearchPage() {
     <div>
       {qaThread.map((qa, index) => (
         <React.Fragment key={qa.id}>
-          {index !== 0 && <div className="border-t border-gray-200 my-4"></div>}
+          {index !== 0 && <Separator className="my-4" />}
           <QACell
             webSources={qa.webSources}
             mediums={qa.mediums}

@@ -7,7 +7,7 @@ import RichContentRenderer from '../../../components/RichContentRenderer';
 function WebSourceSkeleton() {
   return (
     <div role="status" className="max-w-sm animate-pulse">
-      <div className="h-24 bg-gray-200 rounded-md dark:bg-gray-700 w-auto"></div>
+      <div className="h-24 bg-accent rounded-md  w-auto"></div>
       <span className="sr-only">Loading...</span>
     </div>
   );
@@ -16,12 +16,12 @@ function WebSourceSkeleton() {
 function AnswerSkeleton() {
   return (
     <div role="status" className="w-auto animate-pulse">
-      <div className="h-2.5 bg-gray-200 rounded-full dark:bg-gray-700 w-48 mb-4"></div>
-      <div className="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[80%] mb-2.5"></div>
-      <div className="h-2 bg-gray-200 rounded-full dark:bg-gray-700 mb-2.5"></div>
-      <div className="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[70%] mb-2.5"></div>
-      <div className="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[60%] mb-2.5"></div>
-      <div className="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[80%]"></div>
+      <div className="h-2.5 bg-accent rounded-full w-48 mb-4"></div>
+      <div className="h-2 bg-accent rounded-full max-w-[80%] mb-2.5"></div>
+      <div className="h-2 bg-accent rounded-full mb-2.5"></div>
+      <div className="h-2 bg-accent rounded-full max-w-[70%] mb-2.5"></div>
+      <div className="h-2 bg-accent rounded-full max-w-[60%] mb-2.5"></div>
+      <div className="h-2 bg-accent rounded-full max-w-[80%]"></div>
       <span className="sr-only">Loading...</span>
     </div>
   );
@@ -33,22 +33,22 @@ function WidgetSkeleton() {
     <div className="grid md:grid-cols-2 grid-cols-4 gap-2">
       <div className="col-span-1">
         <div role="status" className="max-w-sm animate-pulse">
-          <div className="h-16 bg-gray-200 rounded-md dark:bg-gray-700 w-auto"></div>
+          <div className="h-16 bg-accent rounded-md w-auto"></div>
         </div>
       </div>
       <div className="col-span-1">
         <div role="status" className="max-w-sm animate-pulse">
-          <div className="h-16 bg-gray-200 rounded-md dark:bg-gray-700 w-auto"></div>
+          <div className="h-16 bg-accent rounded-md w-auto"></div>
         </div>
       </div>
       <div className="col-span-1">
         <div role="status" className="max-w-sm animate-pulse">
-          <div className="h-16 bg-gray-200 rounded-md dark:bg-gray-700 w-auto"></div>
+          <div className="h-16 bg-accent rounded-md w-auto"></div>
         </div>
       </div>
       <div className="col-span-1">
         <div role="status" className="max-w-sm animate-pulse">
-          <div className="h-16 bg-gray-200 rounded-md dark:bg-gray-700 w-auto"></div>
+          <div className="h-16 bg-accent rounded-md w-auto"></div>
         </div>
       </div>
       <span className="sr-only">Loading...</span>
@@ -73,7 +73,7 @@ function Widgets(props: Pick<QACellProps, 'mediums'>) {
           {props.mediums.slice(0, 4).map((medium) => (
             <div
               key={medium.url}
-              className="h-24 md:h-48 bg-gray-200 dark:bg-gray-700 rounded-md overflow-hidden"
+              className="h-24 md:h-48 bg-accent rounded-md overflow-hidden"
             >
               {medium.medium === 'image' ? (
                 // eslint-disable-next-line @next/next/no-img-element
