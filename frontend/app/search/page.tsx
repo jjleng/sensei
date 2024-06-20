@@ -38,7 +38,7 @@ interface QueryParams {
   [key: string]: string | undefined | null;
 }
 
-export function SearchPage() {
+function SearchPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const threadIdParam = searchParams.get('threadId');
