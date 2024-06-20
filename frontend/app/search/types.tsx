@@ -1,5 +1,4 @@
 export interface WebSource {
-  index: number;
   title: string;
   url: string;
   content: string;

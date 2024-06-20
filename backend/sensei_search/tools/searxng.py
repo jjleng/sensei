@@ -3,11 +3,12 @@ from __future__ import annotations
 import asyncio
 import os
 from enum import Enum
-from typing import Any, List, TypedDict, Union
+from typing import Any, List, Union
 from urllib.parse import urljoin
 
 from aiohttp import ClientSession
 from pydantic import BaseModel, Field
+from typing_extensions import TypedDict
 
 from sensei_search.env import load_envs
 from sensei_search.logger import logger

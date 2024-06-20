@@ -1,12 +1,15 @@
 import asyncio
-import os
-from typing import Dict
+from typing import Dict, List
 
 import socketio  # type: ignore[import-untyped]
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from sensei_search.agents import SamuraiAgent
+from sensei_search.chat_store import ChatHistory, ChatStore
 from sensei_search.logger import logger
+
+origins = ["http://sensei-frontend.default.52.24.120.109.sslip.io", "http://localhost", "http://localhost:3000"]
 
 
 class SocketIOEmitter:
@@ -20,9 +23,17 @@ class SocketIOEmitter:
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
+)
+
 sio = socketio.AsyncServer(
     async_mode="asgi",
-    cors_allowed_origins=["http://sensei-frontend.default.52.24.120.109.sslip.io", "http://localhost", "http://localhost:3000"],
+    cors_allowed_origins=origins,
 )
 
 sio_asgi_app = socketio.ASGIApp(socketio_server=sio, other_asgi_app=app)
@@ -71,3 +82,14 @@ async def sensei_ask(sid: str, thread_id: str, user_query: str):
             await sio.disconnect(sid)
 
     asyncio.create_task(run_agent())
+
+
+@app.get("/threads/{thread_id}")
+async def get_thread(thread_id: str) -> List[ChatHistory]:
+    """
+    Fetches the chat history for a given thread.
+    """
+    logger.info(f"Fetching thread {thread_id}")
+    chat_store = ChatStore()
+
+    return await chat_store.get_chat_history(thread_id)
