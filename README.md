@@ -6,7 +6,18 @@ Sensei Search is an AI-powered tool designed to deliver the relevant search resu
 http://sensei-frontend.default.52.24.120.109.sslip.io/
 
 ## 📸 Screenshots
-![Screenshot](./docs/screenshot.png)
+
+
+### Light Mode
+<div align="center">
+  <img src="./docs/screenshot.png" alt="Screenshot" max-width="600">
+</div>
+
+### Dark Mode
+<div align="center">
+  <img src="./docs/darkmode.png" alt="Dark Mode Screenshot" max-width="600">
+</div>
+
 
 ## 📌 Latest Updates
 - 06/19/2024 - Sharable link of search history
