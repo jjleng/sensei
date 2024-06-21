@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import asyncio
-from typing import Dict, List
+import os
+from typing import Dict, List, Optional
 
 import socketio  # type: ignore[import-untyped]
 from fastapi import FastAPI
@@ -9,7 +12,13 @@ from sensei_search.agents import SamuraiAgent
 from sensei_search.chat_store import ChatHistory, ChatStore
 from sensei_search.logger import logger
 
-origins = ["http://sensei-frontend.default.52.24.120.109.sslip.io", "http://localhost", "http://localhost:3000"]
+env = os.getenv("ENV", "development")
+
+origins: Optional[List[str]] = None
+
+if env == "production":
+    # TODO: move to another env
+    origins = ["http://sensei-frontend.default.52.24.120.109.sslip.io"]
 
 
 class SocketIOEmitter:
@@ -25,7 +34,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"] if origins is None else origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
@@ -33,7 +42,7 @@ app.add_middleware(
 
 sio = socketio.AsyncServer(
     async_mode="asgi",
-    cors_allowed_origins=origins,
+    cors_allowed_origins="*" if origins is None else origins,
 )
 
 sio_asgi_app = socketio.ASGIApp(socketio_server=sio, other_asgi_app=app)
