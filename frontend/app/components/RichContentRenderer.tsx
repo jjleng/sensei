@@ -7,7 +7,8 @@ import remarkMath from 'remark-math';
 import 'katex/dist/katex.min.css';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import Citation from './Citation';
+import Citation from '@/components/Citation';
+import CopyButton from '@/components/CopyButton';
 
 interface Props {
   richContent: string;
@@ -23,14 +24,17 @@ const RichContentRenderer: React.FC<Props> = ({ richContent }) => {
           code({ node, inline, className, children, ...props }: any) {
             const match = /language-(\w+)/.exec(className || '');
             return !inline && match ? (
-              <SyntaxHighlighter
-                style={vscDarkPlus}
-                language={match[1]}
-                PreTag="div"
-                {...props}
-              >
-                {String(children).replace(/\n$/, '')}
-              </SyntaxHighlighter>
+              <div className="relative">
+                <CopyButton code={String(children).replace(/\n$/, '')} />
+                <SyntaxHighlighter
+                  style={vscDarkPlus}
+                  language={match[1]}
+                  PreTag="div"
+                  {...props}
+                >
+                  {String(children).replace(/\n$/, '')}
+                </SyntaxHighlighter>
+              </div>
             ) : (
               <code className={className} {...props}>
                 {children}

@@ -20,6 +20,7 @@ http://sensei-frontend.default.52.24.120.109.sslip.io/
 
 
 ## 📌 Latest Updates
+- 06/21/2024 - Add button to copy code blocks
 - 06/19/2024 - Sharable link of search history
 
 ## 🛠️ Tech Stack
