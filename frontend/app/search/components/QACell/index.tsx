@@ -123,11 +123,42 @@ export default function QACell(props: QACellProps) {
 
     if (!webSources) return answer;
 
-    return answer.replace(/\[(\d+)\](?!\(.*?\))/g, (match, number) => {
-      if (number > webSources.length) return match;
+    const preprocessedAnswer = answer.replace(
+      /(```.*?)([^`]*?)```([^\n])/gs,
+      (match, opening, content, afterClosing) => {
+        // Check if the closing ``` is followed by a non-newline character
+        if (afterClosing) {
+          // Ensure the closing ``` is on its own line, followed by the character that was after it
+          return `${opening}${content}\`\`\`\n${afterClosing}`;
+        } else {
+          // If the closing ``` is already correctly placed, return the match unchanged
+          return match;
+        }
+      }
+    );
 
-      return `[${number}](${webSources[number - 1].url})`;
-    });
+    // 1. convert `[1]` to be `[1](https://url)`, which is a valid markdown URL
+    // 2. convert `[1,2]` to be `[1](url1)[2](url2)`
+    return preprocessedAnswer.replace(
+      /\[(\d+(?:,\s*\d+)*)\](?!\(.*?\))/g,
+      (match, numbers) => {
+        const numberList = numbers.split(',').map((num: string) => num.trim());
+
+        const isValid = numberList.every((number: string) => {
+          const index = parseInt(number, 10);
+          return index <= webSources.length && index >= 1;
+        });
+
+        if (!isValid) return match;
+
+        const replaced = numberList.map(
+          (number: string) =>
+            `[${number}](${webSources[parseInt(number, 10) - 1].url})`
+        );
+
+        return replaced.join('');
+      }
+    );
   }, [answer, webSources]);
 
   return (
