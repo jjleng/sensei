@@ -20,8 +20,14 @@ http://sensei-frontend.default.52.24.120.109.sslip.io/
 
 
 ## 📌 Latest Updates
-- 06/21/2024 - Add button to copy code blocks
+- 06/21/2024 - Add a button to copy code blocks
 - 06/19/2024 - Sharable link of search history
+
+## Insights from Utilizing Open Source LLMs
+
+The key takeaways and experiences of working with open source Large Language Models are summarized in a detailed discussion. For more information, you can read the full discussion on Reddit:
+
+- [Building an Open Source Perplexity AI with Open Source LLMs - Reddit Post](https://www.reddit.com/r/LocalLLaMA/comments/1dj7mkq/building_an_open_source_perplexity_ai_with_open/)
 
 ## 🛠️ Tech Stack
 Sensei Search is built using the following technologies:
