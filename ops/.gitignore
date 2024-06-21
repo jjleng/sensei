@@ -126,3 +126,5 @@ cython_debug/
 .pytest-kind
 
 .bin/
+
+settings.yml.new
