@@ -146,7 +146,7 @@ function preprocessLatexFormulas(text: string): string {
     /\$\$([^$]+?)\s*(\[\d+\]\s*)+\$\$/g,
     (match, formulaContent, citationGroup) => {
       const citations = citationGroup.trim().replace(/\s+/g, '');
-      return `$$${formulaContent.trim()}$$${citations}`;
+      return `$$${formulaContent.trim()}$$\n${citations}`;
     }
   );
 

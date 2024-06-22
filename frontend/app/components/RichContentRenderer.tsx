@@ -16,7 +16,7 @@ interface Props {
 
 const RichContentRenderer: React.FC<Props> = ({ richContent }) => {
   return (
-    <div className="mb-4">
+    <div className="mb-4 overflow-x-auto">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeRaw, rehypeKatex]}
