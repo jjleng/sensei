@@ -36,7 +36,7 @@ const RichContentRenderer: React.FC<Props> = ({ richContent }) => {
                 </SyntaxHighlighter>
               </div>
             ) : (
-              <code className={className} {...props}>
+              <code className={`${className || ''} font-semibold`} {...props}>
                 {children}
               </code>
             );

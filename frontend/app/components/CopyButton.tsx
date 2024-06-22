@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 interface CopyButtonProps {
   code: string;
@@ -6,10 +6,6 @@ interface CopyButtonProps {
 
 const CopyButton: React.FC<CopyButtonProps> = ({ code }) => {
   const [counter, setCounter] = useState(0);
-
-  useEffect(() => {
-    console.log(counter);
-  }, [counter]);
 
   const handleCopy = async () => {
     try {
