@@ -183,10 +183,9 @@ class SamuraiAgent(BaseAgent):
                         "Secondly, Decide which of the retrieved documents contain facts that should be cited in a good answer to the user's last query. "
                         "Thirdly, Use the retrieved documents to help you. Do not insert any grounding markup from the documents. "
                         "Finally, Give priority to the information obtained from the search over the knowledge from your training data when retrieved documents are relevant. "
-                        "Your answer should be concise and accurate, "
-                        "written in a journalistic tone, and cite the sources using the citation format [1][2], `[1]` and `[2]` refer back to the search results."
-                        "Now answer the user query. You MUST follow the `General Instructions`, `Query type specifications`, "
-                        "`Formatting Instructions` and `Citation Instructions`."
+                        "Your answer should be accurate, written in a journalistic tone, and cite the sources using the citation format [1][2], `[1]` and `[2]` refer back to the search results."
+                        "You MUST follow the `General Instructions`, `Query type specifications`, "
+                        "`Formatting Instructions` and `Citation Instructions`. Repeat the instruction in your mind before you answer. Now answer the user query."
                     ),
                 },
             ],

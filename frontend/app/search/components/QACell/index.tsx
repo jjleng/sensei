@@ -115,6 +115,53 @@ function Widgets(props: Pick<QACellProps, 'mediums'>) {
   );
 }
 
+// Convert [1,2,...] to [1][2]...
+function convertToIndividualCitations(input: string): string {
+  return input.replace(/\[(\d+(?:,\s*\d+)*)\]/g, (match, numbers) => {
+    return numbers
+      .split(',')
+      .map((num: string) => `[${num.trim()}]`)
+      .join('');
+  });
+}
+
+// Convert `[1]` to be `[1](https://url)`, which is a valid markdown URL
+function convertCitationsToMarkdownLinks(
+  input: string,
+  webSources: { url: string }[]
+): string {
+  return input.replace(/\[(\d+)\](?!\(.*?\))/g, (match, number) => {
+    const index = parseInt(number, 10) - 1;
+    if (index >= 0 && index < webSources.length) {
+      return `[${number}](${webSources[index].url})`;
+    }
+    return match;
+  });
+}
+
+// $$ formula [1][2] $$ -> $$ formula $$[1][2]
+function preprocessLatexFormulas(text: string): string {
+  // Process block formulas with citations
+  const processedBlocks = text.replace(
+    /\$\$([^$]+?)\s*(\[\d+\]\s*)+\$\$/g,
+    (match, formulaContent, citationGroup) => {
+      const citations = citationGroup.trim().replace(/\s+/g, '');
+      return `$$${formulaContent.trim()}$$${citations}`;
+    }
+  );
+
+  // Process inline formulas with citations
+  const processedInlines = processedBlocks.replace(
+    /\$([^$]+?)\s*(\[\d+\]\s*)+\$/g,
+    (match, formulaContent, citationGroup) => {
+      const citations = citationGroup.trim().replace(/\s+/g, '');
+      return `$${formulaContent.trim()}$${citations}`;
+    }
+  );
+
+  return processedInlines;
+}
+
 export default function QACell(props: QACellProps) {
   const { answer, webSources } = props;
 
@@ -123,42 +170,11 @@ export default function QACell(props: QACellProps) {
 
     if (!webSources) return answer;
 
-    const preprocessedAnswer = answer.replace(
-      /(```.*?)([^`]*?)```([^\n])/gs,
-      (match, opening, content, afterClosing) => {
-        // Check if the closing ``` is followed by a non-newline character
-        if (afterClosing) {
-          // Ensure the closing ``` is on its own line, followed by the character that was after it
-          return `${opening}${content}\`\`\`\n${afterClosing}`;
-        } else {
-          // If the closing ``` is already correctly placed, return the match unchanged
-          return match;
-        }
-      }
-    );
+    let preprocessedAnswer = convertToIndividualCitations(answer);
+    preprocessedAnswer = preprocessLatexFormulas(preprocessedAnswer);
+    console.log(preprocessedAnswer);
 
-    // 1. convert `[1]` to be `[1](https://url)`, which is a valid markdown URL
-    // 2. convert `[1,2]` to be `[1](url1)[2](url2)`
-    return preprocessedAnswer.replace(
-      /\[(\d+(?:,\s*\d+)*)\](?!\(.*?\))/g,
-      (match, numbers) => {
-        const numberList = numbers.split(',').map((num: string) => num.trim());
-
-        const isValid = numberList.every((number: string) => {
-          const index = parseInt(number, 10);
-          return index <= webSources.length && index >= 1;
-        });
-
-        if (!isValid) return match;
-
-        const replaced = numberList.map(
-          (number: string) =>
-            `[${number}](${webSources[parseInt(number, 10) - 1].url})`
-        );
-
-        return replaced.join('');
-      }
-    );
+    return convertCitationsToMarkdownLinks(preprocessedAnswer, webSources);
   }, [answer, webSources]);
 
   return (
