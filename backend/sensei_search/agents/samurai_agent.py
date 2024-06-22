@@ -2,6 +2,7 @@ import asyncio
 import os
 import uuid
 from typing import List, Union
+from datetime import datetime
 
 import trafilatura  # type: ignore[import]
 from aiohttp import ClientSession
@@ -160,7 +161,7 @@ class SamuraiAgent(BaseAgent):
             search_results += f"Document: {i + 1}\n{page}\n\n"
 
         system_prompt = answer_prompt.format(
-            chat_history=chat_history, search_results=search_results
+            chat_history=chat_history, search_results=search_results, current_date=datetime.now().isoformat()
         )
 
         client = OpenAI(
