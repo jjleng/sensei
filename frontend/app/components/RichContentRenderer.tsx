@@ -12,14 +12,23 @@ import CopyButton from '@/components/CopyButton';
 
 interface Props {
   richContent: string;
+  enableMath?: boolean;
 }
 
-const RichContentRenderer: React.FC<Props> = ({ richContent }) => {
+const RichContentRenderer: React.FC<Props> = ({
+  richContent,
+  enableMath = false,
+}) => {
+  const remarkPlugins: any = [remarkGfm];
+  if (enableMath) {
+    remarkPlugins.push(remarkMath);
+  }
+
   return (
     <div className="mb-4 overflow-x-auto">
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeRaw, rehypeKatex]}
+        remarkPlugins={remarkPlugins}
+        rehypePlugins={[rehypeRaw, ...(enableMath ? [rehypeKatex] : [])]}
         components={{
           code({ node, inline, className, children, ...props }: any) {
             const match = /language-(\w+)/.exec(className || '');

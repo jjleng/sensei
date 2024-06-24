@@ -16,7 +16,7 @@ import SearchInput from '@/search/components/SearchInput';
 import QACell from '@/search/components/QACell';
 import { io, Socket } from 'socket.io-client';
 import { useToast } from '@/hooks/use-toast';
-import { WebSource, MediumImage, MediumVideo } from '@/search/types';
+import { WebSource, MediumImage, MediumVideo, MetaData } from '@/search/types';
 import Context from '@/context';
 
 // Query and Answer
@@ -33,6 +33,8 @@ interface QA {
   webSources: WebSource[] | null;
   // Mediums including images and videos from the search results
   mediums: (MediumImage | MediumVideo)[] | null;
+  // Extra data, such as if the answer potentially has math formulas
+  metadata: MetaData | null;
 }
 
 interface QueryParams {
@@ -156,6 +158,7 @@ function SearchPage() {
           answer: null,
           webSources: null,
           mediums: null,
+          metadata: null,
         },
       ]);
 
@@ -186,6 +189,17 @@ function SearchPage() {
 
             const lastQA = draft[draft.length - 1];
             lastQA.webSources = data;
+          })
+        );
+      });
+
+      newSocket.on('metadata', ({ data }) => {
+        setQAThread((prevQAThread) =>
+          produce(prevQAThread, (draft) => {
+            if (draft.length === 0) return;
+
+            const lastQA = draft[draft.length - 1];
+            lastQA.metadata = data;
           })
         );
       });
@@ -253,6 +267,7 @@ function SearchPage() {
             mediums={qa.mediums}
             answer={qa.answer}
             query={qa.query}
+            metadata={qa.metadata}
           />
           {/* Marker for the end of the QA cells */}
           <div

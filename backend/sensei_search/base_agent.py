@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Dict, List, Literal, Optional, Protocol
+from typing_extensions import TypedDict
 
 from pydantic import BaseModel, Field
 
@@ -15,6 +16,7 @@ class EventEnum(str, Enum):
     web_results = "web_results"
     medium_results = "medium_results"
     answer = "answer"
+    metadata = "metadata"
 
 
 class EventEmitter(Protocol):
@@ -23,6 +25,48 @@ class EventEmitter(Protocol):
     """
 
     async def emit(self, event: str, data: Dict): ...
+
+
+class QueryTags(TypedDict, total=False):
+    """
+    Represents the classification tags for a user query to determine the type of response required.
+
+    Attributes:
+        needs_search (bool): Indicates whether a search-based response is necessary. True means the query requires
+                             external search data, potentially from a Retrieval-Augmented Generation (RAG) system,
+                             while False suggests the LLM can answer based on its trained knowledge alone.
+        needs_image (bool): True if the response to the query would benefit from including images.
+        needs_video (bool): True if the response to the query would benefit from including videos.
+        content_violation (bool): True if the query contains content that may violate guidelines or is considered harmful
+                          or controversial.
+        has_math (bool): True if the query involves mathematical content or requires mathematical understanding
+                         or formulation.
+    """
+
+    needs_search: bool
+    needs_image: bool
+    needs_video: bool
+    content_violation: bool
+    has_math: bool
+
+
+class EnrichedQuery(TypedDict, total=False):
+    """
+    A data structure that represents an enriched version of a user's query with additional metadata.
+
+    Attributes:
+        search_query (str): The search-optimized query string. This is generated to facilitate enhanced search
+                            capabilities, even if the initial query does not require a search, ensuring readiness
+                            for any necessary retrieval tasks.
+        tags (Optional[QueryTags]): A dictionary of classification tags that provide detailed insights into
+                            the nature of the query, such as whether it requires external search, involves images,
+                            videos, contains potentially violating content, or involves mathematical computation.
+                            The tags are optional and may not be present if the classification step is bypassed
+                            or deemed unnecessary.
+    """
+
+    search_query: str
+    tags: Optional[QueryTags]
 
 
 class AgentInput(BaseModel):

@@ -11,3 +11,7 @@ export type MediumImage = MediumBase & {
   readonly medium: 'image';
 };
 export type MediumVideo = MediumBase & { readonly medium: 'video' };
+
+export interface MetaData {
+  has_math: boolean;
+}

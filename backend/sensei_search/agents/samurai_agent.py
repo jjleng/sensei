@@ -1,30 +1,33 @@
 import asyncio
 import os
 import uuid
-from typing import List, Union
+from typing import List, Union, Tuple, Optional
 from datetime import datetime
 
 import trafilatura  # type: ignore[import]
 from aiohttp import ClientSession
-from openai import OpenAI
+from openai import OpenAI, AsyncOpenAI
 
-from sensei_search.base_agent import BaseAgent, EventEnum
+from sensei_search.base_agent import BaseAgent, EventEnum, QueryTags, EnrichedQuery
 from sensei_search.chat_store import (
     ChatHistory,
     ChatStore,
     MediumImage,
     MediumVideo,
     WebResult,
+    MetaData
 )
 from sensei_search.env import load_envs
 from sensei_search.logger import logger
-from sensei_search.prompts import answer_prompt, search_prompt
+from sensei_search.prompts import answer_prompt, search_prompt, classification_prompt
 from sensei_search.tools import Category, GeneralResult
 from sensei_search.tools import Input as SearxNGInput
 from sensei_search.tools import TopResults, searxng_search_results_json
 
 load_envs()
 
+async def noop():
+    return None
 
 class SamuraiAgent(BaseAgent):
     """
@@ -59,6 +62,12 @@ class SamuraiAgent(BaseAgent):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+    async def emit_metadata(self, metadata: MetaData):
+        """
+        Send the metadata to the frontend.
+        """
+        await self.emitter.emit(EventEnum.metadata.value, {"data": metadata})
 
     async def emit_web_results(self, results: List[GeneralResult]):
         """
@@ -100,32 +109,67 @@ class SamuraiAgent(BaseAgent):
         """
         await self.emitter.emit(EventEnum.answer.value, {"data": answer})
 
-    async def gen_search_query(self):
+    async def process_user_query(self):
         """
-        Generate a search query based on the chat history and the user's current query.
+        Generate a search query based on the chat history and the user's current query,
+        and classify the query to determine its nature and required handling.
         """
-        client = OpenAI(
+        client = AsyncOpenAI(
             base_url=os.environ["SM_MODLE_URL"], api_key=os.environ["SM_MODEL_API_KEY"]
         )
 
         # We only load user's queries from the chat history to save LLM tokens
-        prompt = search_prompt.format(
-            chat_history=self.chat_history_to_string(["user"]),
-            user_current_query=self.chat_messages[-1]["content"],
+        chat_history = self.chat_history_to_string(["user"])
+        user_current_query = self.chat_messages[-1]["content"]
+
+        materialized_search_prompt = search_prompt.format(
+            chat_history=chat_history,
+            user_current_query=user_current_query,
         )
 
-        response = client.chat.completions.create(
-            model=os.environ["SM_MODEL"],
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.0,
-            max_tokens=500,
+        materialized_classify_prompt = classification_prompt.format(
+            chat_history=chat_history,
+            user_current_query=user_current_query,
         )
 
-        query = response.choices[0].message.content
+        search_response, classification_response = await asyncio.gather(
+            client.chat.completions.create(
+                model=os.environ["SM_MODEL"],
+                messages=[{"role": "user", "content": materialized_search_prompt}],
+                temperature=0.0,
+                max_tokens=500,
+            ),
+            client.chat.completions.create(
+                model=os.environ["SM_MODEL"],
+                messages=[{"role": "user", "content": materialized_classify_prompt}],
+                temperature=0.0,
+                max_tokens=500,
+            ),
+        )
+
+        classify_response = classification_response.choices[0].message.content
+
+        classify_response = classify_response.strip('"').strip("'")
+
+        # need_search, need_image, need_video, violation, has_math
+        tags_dict = dict(tag.strip().split(":") for tag in classify_response.split(","))
+        query_tags = QueryTags(
+            needs_search=tags_dict.get("SEARCH_NEEDED", "YES").strip() == "YES",
+            needs_image=tags_dict.get("SEARCH_IMAGE", "YES").strip() == "YES",
+            needs_video=tags_dict.get("SEARCH_VIDEO", "YES").strip() == "YES",
+            content_violation=tags_dict.get("CONTENT_VIOLATION", "NO").strip() == "YES",
+            has_math=tags_dict.get("MATH", "NO").strip() == "YES",
+        )
+
+        query = search_response.choices[0].message.content
 
         query = query.strip('"').strip("'")
 
-        return query
+        enriched_query = EnrichedQuery(search_query=query, tags=query_tags)
+
+        logger.info(enriched_query)
+
+        return enriched_query
 
     async def fetch_web_pages(self, results: List[GeneralResult]) -> List[str]:
         """
@@ -161,7 +205,9 @@ class SamuraiAgent(BaseAgent):
             search_results += f"Document: {i + 1}\n{page}\n\n"
 
         system_prompt = answer_prompt.format(
-            chat_history=chat_history, search_results=search_results, current_date=datetime.now().isoformat()
+            chat_history=chat_history,
+            search_results=search_results,
+            current_date=datetime.now().isoformat(),
         )
 
         client = OpenAI(
@@ -180,10 +226,12 @@ class SamuraiAgent(BaseAgent):
                     "role": "system",
                     "content": (
                         "Carefully perform the following instructions in order. "
-                        "Firstly, Decide which of the retrieved documents are relevant to the user's last query. "
-                        "Secondly, Decide which of the retrieved documents contain facts that should be cited in a good answer to the user's last query. "
-                        "Thirdly, Use the retrieved documents to help you. Do not insert any grounding markup from the documents. "
+                        "Firstly, Decide if user's query violates Safety Preamble. If yes, reject user's request."
+                        "Secondly, Decide which of the retrieved documents are relevant to the user's last query. "
+                        "Thirdly, Decide which of the retrieved documents contain facts that should be cited in a good answer to the user's last query. "
+                        "Fourthly, Use the retrieved documents to help you. Do not insert any grounding markup from the documents. "
                         "Finally, Give priority to the information obtained from the search over the knowledge from your training data when retrieved documents are relevant. "
+                        "Your answer should be accurate, written in a journalistic tone, and cite the sources using the citation format [1][2], `[1]` and `[2]` refer back to the search results."
                         "You MUST follow the `Query type specifications`, `Formatting Instructions` and `Citation Instructions`. "
                         "Repeat the instructions in your mind before answering. Now answer the user's latest query using the same language they used."
                     ),
@@ -213,32 +261,54 @@ class SamuraiAgent(BaseAgent):
         # Append user message to chat history
         self.append_message(role="user", content=user_message)
 
-        query = await self.gen_search_query()
+        enriched_query = await self.process_user_query()
+        query = enriched_query["search_query"]
 
         logger.info(f"Search Query: {query}")
 
+        # We should check if the tags contain 'needs_search'. But for now, we always perform a search
         search_input = SearxNGInput(query=query, categories=[Category.general])
-        search_results = await searxng_search_results_json(search_input)
+        tags = enriched_query["tags"]
+        metadata = MetaData(has_math=True if tags and tags['has_math'] else False)
+
+        search_results, _ = await asyncio.gather(
+            searxng_search_results_json(search_input), self.emit_metadata(metadata=metadata))
         general_results = search_results["general"]
 
-        search_input = SearxNGInput(
-            query=query, categories=[Category.images, Category.videos]
-        )
-
-        results = await asyncio.gather(
-            # Sending search results to the web
+        tasks = [
+            # Sending search results to the client ASAP
             self.emit_web_results(general_results),
-            # Search for images and videos
-            searxng_search_results_json(search_input),
             # Fetch web page contents for llm to use as context
-            self.fetch_web_pages(general_results[:5]),
-        )
+            self.fetch_web_pages(general_results[:5])
+        ]
 
-        _, medium_results, web_pages = results
+        categories = []
 
-        answer, _ = await asyncio.gather(
-            self.gen_answer(web_pages), self.emit_medium_results(medium_results)
-        )
+        if tags is not None:
+            if tags['needs_image']:
+                categories.append(Category.images)
+            if tags['needs_video']:
+                categories.append(Category.videos)
+
+        if categories:
+            search_input = SearxNGInput(query=query, categories=categories)
+            # Search for images and videos
+            tasks.append(searxng_search_results_json(search_input))
+        else:
+            # Add a no-operation coroutine as a placeholder
+            tasks.append(noop())
+
+        results: Tuple[None, List[str], Optional[TopResults]] = await asyncio.gather(*tasks)
+        _, web_pages, medium_results = results
+
+        tasks = [self.gen_answer(web_pages)]
+
+        if medium_results is None:
+            medium_results = TopResults(general=[], images=[], videos=[])
+
+        tasks.append(self.emit_medium_results(medium_results))
+
+        answer, _ = await asyncio.gather(*tasks)
         logger.info("Answer generated successfully.")
 
         logger.debug(f"Answer for query {query} is {answer}")
@@ -248,18 +318,24 @@ class SamuraiAgent(BaseAgent):
 
         mediums: List[Union[MediumImage, MediumVideo]] = []
 
-        for medium in medium_results["images"]:
-            mediums.append(
-                {"url": medium["url"], "image": medium["img_src"], "medium": "image"}
-            )
+        if medium_results:
+            for image in medium_results["images"]:
+                mediums.append(
+                    {"url": image["url"], "image": image["img_src"], "medium": "image"}
+                )
 
-        for medium in medium_results["videos"]:
-            mediums.append({"url": medium["url"], "medium": "video"})
+            for video in medium_results["videos"]:
+                mediums.append({"url": video["url"], "medium": "video"})
 
         web_results: List[WebResult] = [
             {"url": res["url"], "title": res["title"], "content": res["content"]}
             for res in general_results
         ]
+
+        metadata = MetaData(has_math=False)
+
+        if tags is not None and tags['has_math']:
+            metadata["has_math"] = True
 
         chat_history: ChatHistory = {
             "id": str(uuid.uuid4()),
@@ -268,5 +344,7 @@ class SamuraiAgent(BaseAgent):
             "web_results": web_results,
             "query": user_message,
             "answer": answer,
+            # We use the metadata to give the client extra info if they need to load the Math plugin
+            "metadata": metadata
         }
         await chat_store.save_chat_history(self.thread_id, chat_history)
