@@ -153,12 +153,21 @@ class SamuraiAgent(BaseAgent):
 
         classify_response = classify_response.strip('"').strip("'")
 
+        logger.info(classify_response)
+
         # need_search, need_image, need_video, violation, has_math
-        tags_dict = dict(tag.strip().split(":") for tag in classify_response.split(","))
+        tags_dict = {}
+        for tag in classify_response.split(","):
+            try:
+                key, value = tag.strip().split(":")
+                tags_dict[key] = value
+            except ValueError:
+                logger.warning(f"Skipping ill-formatted tag: {tag}")
+
         query_tags = QueryTags(
             needs_search=tags_dict.get("SEARCH_NEEDED", "YES").strip() == "YES",
-            needs_image=tags_dict.get("SEARCH_IMAGE", "YES").strip() == "YES",
-            needs_video=tags_dict.get("SEARCH_VIDEO", "YES").strip() == "YES",
+            needs_image=tags_dict.get("SEARCH_IMAGE", "NO").strip() == "YES",
+            needs_video=tags_dict.get("SEARCH_VIDEO", "NO").strip() == "YES",
             content_violation=tags_dict.get("CONTENT_VIOLATION", "NO").strip() == "YES",
             has_math=tags_dict.get("MATH", "NO").strip() == "YES",
         )
