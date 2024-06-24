@@ -5,7 +5,7 @@ from typing import List, Union, Tuple, Optional
 from datetime import datetime
 
 import trafilatura  # type: ignore[import]
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientTimeout
 from openai import OpenAI, AsyncOpenAI
 
 from sensei_search.base_agent import BaseAgent, EventEnum, QueryTags, EnrichedQuery
@@ -25,6 +25,8 @@ from sensei_search.tools import Input as SearxNGInput
 from sensei_search.tools import TopResults, searxng_search_results_json
 
 load_envs()
+
+FETCH_WEBPAGE_TIMEOUT = 3
 
 async def noop():
     return None
@@ -175,21 +177,21 @@ class SamuraiAgent(BaseAgent):
         """
         Fetch the web page contents for the search results.
         """
-        tasks = []
+        async def fetch_page(url: str, session: ClientSession) -> str:
+            try:
+                async with session.get(url) as response:
+                    return await response.text()
+            except asyncio.TimeoutError:
+                logger.warning(f"Timeout occurred when fetching {url}")
+            except Exception as e:
+                logger.exception(f"Error fetching {url}: {e}")
+            return ""
 
-        async def fetch_page(url):
-            async with ClientSession() as session:
-                try:
-                    async with session.get(url) as response:
-                        return await response.text()
-                except Exception as e:
-                    logger.exception(e)
-
-        for result in results:
-            tasks.append(fetch_page(result["url"]))
-
-        html_web_pages = await asyncio.gather(*tasks)
-        return [trafilatura.extract(page or "") for page in html_web_pages]
+        timeout = ClientTimeout(total=FETCH_WEBPAGE_TIMEOUT)
+        async with ClientSession(timeout=timeout) as session:
+            tasks = [fetch_page(result['url'], session) for result in results]
+            html_web_pages = await asyncio.gather(*tasks)
+            return [trafilatura.extract(page) for page in html_web_pages]
 
     async def gen_answer(self, web_pages: List[str]):
         """
