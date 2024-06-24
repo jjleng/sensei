@@ -98,7 +98,20 @@
 
   body ul,
   body ol {
-    @apply list-disc list-inside ml-4 mt-4 mb-4;
+    @apply list-inside ml-4 mt-4 mb-4;
+  }
+
+  body ul li,
+  body ol li {
+    @apply my-2;
+  }
+
+  body ol {
+    @apply list-decimal
+  }
+
+  body ul {
+    @apply list-disc
   }
 
   body blockquote {
