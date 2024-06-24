@@ -25,11 +25,17 @@ const RichContentRenderer: React.FC<Props> = ({
   }
 
   return (
-    <div className="mb-4 overflow-x-auto">
+    <div className="rich-content-renderer mb-4 overflow-x-auto">
       <ReactMarkdown
         remarkPlugins={remarkPlugins}
         rehypePlugins={[rehypeRaw, ...(enableMath ? [rehypeKatex] : [])]}
         components={{
+          ol({ node, ...props }) {
+            return <ol className="list-decimal" {...props} />;
+          },
+          li({ node, ...props }) {
+            return <li className="my-2" {...props} />;
+          },
           code({ node, inline, className, children, ...props }: any) {
             const match = /language-(\w+)/.exec(className || '');
             return !inline && match ? (
