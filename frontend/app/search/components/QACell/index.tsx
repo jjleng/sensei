@@ -160,7 +160,12 @@ function preprocessLatexFormulas(text: string): string {
     }
   );
 
-  return processedInlines;
+  const augmentedFormulas = processedInlines.replace(
+    /\$\$((?:\[\d+\])+)\s*/g,
+    '$$\n$1'
+  );
+
+  return augmentedFormulas;
 }
 
 export default function QACell(props: QACellProps) {
