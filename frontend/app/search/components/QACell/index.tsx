@@ -3,7 +3,7 @@ import Link from 'next/link';
 import WebSourceCard, {
   WebSourceMoreCard,
 } from '@/search/components/QACell/WebSourceCard';
-import { MediumImage, MediumVideo, WebSource } from '@/search/types';
+import { MediumImage, MediumVideo, MetaData, WebSource } from '@/search/types';
 import RichContentRenderer from '@/components/RichContentRenderer';
 
 function WebSourceSkeleton() {
@@ -63,6 +63,7 @@ interface QACellProps {
   mediums: (MediumImage | MediumVideo)[] | null;
   answer: string | null;
   query: string;
+  metadata: MetaData | null;
 }
 
 function Widgets(props: Pick<QACellProps, 'mediums'>) {
@@ -172,7 +173,6 @@ export default function QACell(props: QACellProps) {
 
     let preprocessedAnswer = convertToIndividualCitations(answer);
     preprocessedAnswer = preprocessLatexFormulas(preprocessedAnswer);
-    console.log(preprocessedAnswer);
 
     return convertCitationsToMarkdownLinks(preprocessedAnswer, webSources);
   }, [answer, webSources]);
@@ -265,7 +265,12 @@ export default function QACell(props: QACellProps) {
           {props.answer === null ? (
             <AnswerSkeleton />
           ) : (
-            <RichContentRenderer richContent={formattedAnswer} />
+            <RichContentRenderer
+              richContent={formattedAnswer}
+              enableMath={
+                (props.metadata && props.metadata['has_math']) || false
+              }
+            />
           )}
         </>
       </div>

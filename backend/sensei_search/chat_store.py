@@ -1,6 +1,6 @@
 import json
 import os
-from typing import List, Union
+from typing import List, Union, Optional
 
 import redis.asyncio as redis
 from typing_extensions import TypedDict
@@ -25,14 +25,18 @@ class MediumImage(TypedDict):
     medium: str
 
 
-class ChatHistory(TypedDict):
+class MetaData(TypedDict):
+    has_math: bool
+
+
+class ChatHistory(TypedDict, total=False):
     id: str
     thread_id: str
     mediums: List[Union[MediumImage, MediumVideo]]
     web_results: List[WebResult]
     query: str
     answer: str
-
+    metadata: Optional[MetaData]
 
 class ThreadMetadata(TypedDict):
     user_id: str
