@@ -1,6 +1,6 @@
 import json
 import os
-from typing import List, Union, Optional
+from typing import List, Optional, Union
 
 import redis.asyncio as redis
 from typing_extensions import TypedDict
@@ -37,6 +37,7 @@ class ChatHistory(TypedDict, total=False):
     query: str
     answer: str
     metadata: Optional[MetaData]
+
 
 class ThreadMetadata(TypedDict):
     user_id: str
@@ -86,6 +87,7 @@ class ChatStore:
         # Here, we swallow the exception and log it. This is not ideal, but the goal
         # is to ensure users get a response even without the chat history context.
         try:
+            logger.info(f"Load chat history for thread {thread_id}")
             chat_history_json = await self.redis.lrange(self._get_key(thread_id), 0, -1)
             return [json.loads(chat_history) for chat_history in chat_history_json]
         except Exception as e:

@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Dict, List, Literal, Optional, Protocol
-from typing_extensions import TypedDict
 
 from pydantic import BaseModel, Field
+from typing_extensions import TypedDict
 
 from sensei_search.chat_store import ChatStore
 

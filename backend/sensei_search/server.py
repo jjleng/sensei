@@ -17,8 +17,9 @@ env = os.getenv("ENV", "development")
 origins: Optional[List[str]] = None
 
 if env == "production":
-    # TODO: move to another env
-    origins = ["http://sensei-frontend.default.52.24.120.109.sslip.io"]
+    origins_env = os.getenv("CORS_ORIGINS", "")
+    if origins_env:
+        origins = origins_env.split(",")
 
 
 class SocketIOEmitter:
@@ -102,3 +103,8 @@ async def get_thread(thread_id: str) -> List[ChatHistory]:
     chat_store = ChatStore()
 
     return await chat_store.get_chat_history(thread_id)
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}

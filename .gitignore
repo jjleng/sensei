@@ -17,3 +17,4 @@ docs/_output/
 
 # Miscs
 .bin/
+.vercel
