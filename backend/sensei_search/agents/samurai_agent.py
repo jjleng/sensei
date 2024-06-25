@@ -1,25 +1,25 @@
 import asyncio
 import os
 import uuid
-from typing import List, Union, Tuple, Optional
 from datetime import datetime
+from typing import List, Optional, Tuple, Union
 
 import trafilatura  # type: ignore[import]
 from aiohttp import ClientSession, ClientTimeout
-from openai import OpenAI, AsyncOpenAI
+from openai import AsyncOpenAI, OpenAI
 
-from sensei_search.base_agent import BaseAgent, EventEnum, QueryTags, EnrichedQuery
+from sensei_search.base_agent import BaseAgent, EnrichedQuery, EventEnum, QueryTags
 from sensei_search.chat_store import (
     ChatHistory,
     ChatStore,
     MediumImage,
     MediumVideo,
+    MetaData,
     WebResult,
-    MetaData
 )
 from sensei_search.env import load_envs
 from sensei_search.logger import logger
-from sensei_search.prompts import answer_prompt, search_prompt, classification_prompt
+from sensei_search.prompts import answer_prompt, classification_prompt, search_prompt
 from sensei_search.tools import Category, GeneralResult
 from sensei_search.tools import Input as SearxNGInput
 from sensei_search.tools import TopResults, searxng_search_results_json
@@ -28,8 +28,10 @@ load_envs()
 
 FETCH_WEBPAGE_TIMEOUT = 3
 
+
 async def noop():
     return None
+
 
 class SamuraiAgent(BaseAgent):
     """
@@ -186,6 +188,7 @@ class SamuraiAgent(BaseAgent):
         """
         Fetch the web page contents for the search results.
         """
+
         async def fetch_page(url: str, session: ClientSession) -> str:
             try:
                 async with session.get(url) as response:
@@ -198,7 +201,7 @@ class SamuraiAgent(BaseAgent):
 
         timeout = ClientTimeout(total=FETCH_WEBPAGE_TIMEOUT)
         async with ClientSession(timeout=timeout) as session:
-            tasks = [fetch_page(result['url'], session) for result in results]
+            tasks = [fetch_page(result["url"], session) for result in results]
             html_web_pages = await asyncio.gather(*tasks)
             return [trafilatura.extract(page) for page in html_web_pages]
 
@@ -265,6 +268,7 @@ class SamuraiAgent(BaseAgent):
         """
         Entry point for the agent.
         """
+        logger.info("samurai_agent runs")
         # To save LLM tokens, we only load user's queries from the chat history
         # This can already give us a good context for generating search queries and answers
         await self.load_chat_history(self.thread_id, ["user"])
@@ -280,25 +284,27 @@ class SamuraiAgent(BaseAgent):
         # We should check if the tags contain 'needs_search'. But for now, we always perform a search
         search_input = SearxNGInput(query=query, categories=[Category.general])
         tags = enriched_query["tags"]
-        metadata = MetaData(has_math=True if tags and tags['has_math'] else False)
+        metadata = MetaData(has_math=True if tags and tags["has_math"] else False)
 
         search_results, _ = await asyncio.gather(
-            searxng_search_results_json(search_input), self.emit_metadata(metadata=metadata))
+            searxng_search_results_json(search_input),
+            self.emit_metadata(metadata=metadata),
+        )
         general_results = search_results["general"]
 
         tasks = [
             # Sending search results to the client ASAP
             self.emit_web_results(general_results),
             # Fetch web page contents for llm to use as context
-            self.fetch_web_pages(general_results[:5])
+            self.fetch_web_pages(general_results[:5]),
         ]
 
         categories = []
 
         if tags is not None:
-            if tags['needs_image']:
+            if tags["needs_image"]:
                 categories.append(Category.images)
-            if tags['needs_video']:
+            if tags["needs_video"]:
                 categories.append(Category.videos)
 
         if categories:
@@ -309,7 +315,9 @@ class SamuraiAgent(BaseAgent):
             # Add a no-operation coroutine as a placeholder
             tasks.append(noop())
 
-        results: Tuple[None, List[str], Optional[TopResults]] = await asyncio.gather(*tasks)
+        results: Tuple[None, List[str], Optional[TopResults]] = await asyncio.gather(
+            *tasks
+        )
         _, web_pages, medium_results = results
 
         tasks = [self.gen_answer(web_pages)]
@@ -345,7 +353,7 @@ class SamuraiAgent(BaseAgent):
 
         metadata = MetaData(has_math=False)
 
-        if tags is not None and tags['has_math']:
+        if tags is not None and tags["has_math"]:
             metadata["has_math"] = True
 
         chat_history: ChatHistory = {
@@ -356,6 +364,6 @@ class SamuraiAgent(BaseAgent):
             "query": user_message,
             "answer": answer,
             # We use the metadata to give the client extra info if they need to load the Math plugin
-            "metadata": metadata
+            "metadata": metadata,
         }
         await chat_store.save_chat_history(self.thread_id, chat_history)
