@@ -12,11 +12,11 @@ import React, {
 import { produce } from 'immer';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/Separator';
-import SearchInput from '@/search/components/SearchInput';
-import QACell from '@/search/components/QACell';
+import SearchInput from '@/components/SearchInput';
+import ChatHistoryItem from '@/components/ChatHistoryItem';
 import { io, Socket } from 'socket.io-client';
 import { useToast } from '@/hooks/use-toast';
-import { WebSource, MediumImage, MediumVideo, MetaData } from '@/search/types';
+import { WebSource, MediumImage, MediumVideo, MetaData } from '@/types';
 import Context from '@/context';
 
 // Query and Answer
@@ -262,7 +262,7 @@ function SearchPage() {
       {qaThread.map((qa, index) => (
         <React.Fragment key={qa.id}>
           {index !== 0 && <Separator className="my-4" />}
-          <QACell
+          <ChatHistoryItem
             webSources={qa.webSources}
             mediums={qa.mediums}
             answer={qa.answer}
