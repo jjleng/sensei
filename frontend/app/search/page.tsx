@@ -276,7 +276,7 @@ function SearchPage() {
           ></div>
         </React.Fragment>
       ))}
-      <div className="grid md:grid-cols-12 grid-cols-1 gap-0 md:gap-6 fixed bottom-0 md:bottom-10 left-1/2 transform -translate-x-1/2 -translate-y-1/2 max-w-screen-lg w-full">
+      <div className="grid md:grid-cols-12 grid-cols-1 gap-0 md:gap-6 fixed bottom-0 md:bottom-10 left-1/2 transform -translate-x-1/2 max-w-screen-lg w-full">
         <div className="col-span-8 px-2 md:px-0">
           <SearchInput
             onSearch={(value) => {
