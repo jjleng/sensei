@@ -13,6 +13,9 @@ export const metadata: Metadata = {
   icons: {
     icon: [{ rel: 'icon', url: './favicon.ico', type: 'image/x-icon' }],
   },
+  other: {
+    google: 'notranslate',
+  },
 };
 
 export default function RootLayout({
