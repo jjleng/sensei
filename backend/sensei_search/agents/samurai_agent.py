@@ -243,12 +243,12 @@ class SamuraiAgent(BaseAgent):
                         "1. Ensure that the user's query does not violate the Safety Preamble. If it does, reject the request and provide no response. "
                         "2. Retrieve relevant documents related to the user's query. "
                         "3. Determine which of the retrieved documents contain facts pertinent to crafting an informative response. "
-                        "4. Construct your answer based on the information extracted from the relevant documents. Avoid directly copying any grounding markup or references from the source material. Always attribute the information by citing the corresponding document(s) using the format `[1][2]`. "
+                        "4. Construct your answer based on the information extracted from the relevant documents. Avoid directly copying any grounding markup or references from the source material. Always attribute the information by citing the corresponding document(s) using the format `[1][2]` while composing the answer. "
                         "5. When relevant documents are available, prioritize the information obtained from the search results over the knowledge from your pre-training data."
-                        "6. You MUST follow `Query type specifications` to write your answer based on the type of user query, `Formatting Instructions` to format your answer and `Citation Instructions` to attribute the sources."
-                        "Repeat the instructions in your mind before answering. Now answer the user's latest query using the same language they used. After your answer, think about the reasons why you choose this answer and what `Query type specifications`, `Formatting Instructions` and `Citation Instructions` you have followed. Count how many citations you have made."
+                        "6. You MUST follow `Query type specifications` to write your answer based on the type of user query. You MUST follow `Formatting Instructions` to format your answer and `Citation Instructions` to attribute the sources."
+                        "Repeat the instructions in your mind before answering."
                     ),
-                },
+                }
             ],
             temperature=0.0,
             max_tokens=2500,
@@ -262,6 +262,24 @@ class SamuraiAgent(BaseAgent):
                 await self.emit_answer(chunk.choices[0].delta.content)
 
         return "".join(final_answer_parts)
+
+    async def process_medium(self, query: str, tags: Optional[QueryTags]) -> TopResults:
+        categories = []
+
+        if tags is not None:
+            if tags["needs_image"]:
+                categories.append(Category.images)
+            if tags["needs_video"]:
+                categories.append(Category.videos)
+
+        if categories:
+            search_input = SearxNGInput(query=query, categories=categories)
+            # Search for images and videos
+            medium_results = await searxng_search_results_json(search_input)
+        else:
+            medium_results = TopResults(general=[], images=[], videos=[])
+        await self.emit_medium_results(medium_results)
+        return medium_results
 
     async def run(self, user_message: str):
         """
@@ -298,35 +316,14 @@ class SamuraiAgent(BaseAgent):
             self.fetch_web_pages(general_results[:5]),
         ]
 
-        categories = []
-
-        if tags is not None:
-            if tags["needs_image"]:
-                categories.append(Category.images)
-            if tags["needs_video"]:
-                categories.append(Category.videos)
-
-        if categories:
-            search_input = SearxNGInput(query=query, categories=categories)
-            # Search for images and videos
-            tasks.append(searxng_search_results_json(search_input))
-        else:
-            # Add a no-operation coroutine as a placeholder
-            tasks.append(noop())
-
-        results: Tuple[None, List[str], Optional[TopResults]] = await asyncio.gather(
+        results: Tuple[None, List[str]] = await asyncio.gather(
             *tasks
         )
-        _, web_pages, medium_results = results
+        _, web_pages = results
 
-        tasks = [self.gen_answer(web_pages)]
+        tasks = [self.gen_answer(web_pages), self.process_medium(query, tags)]
+        answer, medium_results = await asyncio.gather(*tasks)
 
-        if medium_results is None:
-            medium_results = TopResults(general=[], images=[], videos=[])
-
-        tasks.append(self.emit_medium_results(medium_results))
-
-        answer, _ = await asyncio.gather(*tasks)
         logger.info("Answer generated successfully.")
 
         logger.debug(f"Answer for query {query} is {answer}")
