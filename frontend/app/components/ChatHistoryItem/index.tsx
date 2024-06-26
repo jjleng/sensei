@@ -2,61 +2,11 @@ import React, { useMemo } from 'react';
 import Link from 'next/link';
 import WebSourceCard, {
   WebSourceMoreCard,
-} from '@/search/components/QACell/WebSourceCard';
-import { MediumImage, MediumVideo, MetaData, WebSource } from '@/search/types';
+} from '@/components/ChatHistoryItem/WebSourceCard';
+import { MediumImage, MediumVideo, MetaData, WebSource } from '@/types';
 import RichContentRenderer from '@/components/RichContentRenderer';
-
-function WebSourceSkeleton() {
-  return (
-    <div role="status" className="max-w-sm animate-pulse">
-      <div className="h-24 bg-accent rounded-md  w-auto"></div>
-      <span className="sr-only">Loading...</span>
-    </div>
-  );
-}
-
-function AnswerSkeleton() {
-  return (
-    <div role="status" className="w-auto animate-pulse">
-      <div className="h-2.5 bg-accent rounded-full w-48 mb-4"></div>
-      <div className="h-2 bg-accent rounded-full max-w-[80%] mb-2.5"></div>
-      <div className="h-2 bg-accent rounded-full mb-2.5"></div>
-      <div className="h-2 bg-accent rounded-full max-w-[70%] mb-2.5"></div>
-      <div className="h-2 bg-accent rounded-full max-w-[60%] mb-2.5"></div>
-      <div className="h-2 bg-accent rounded-full max-w-[80%]"></div>
-      <span className="sr-only">Loading...</span>
-    </div>
-  );
-}
-
-// Widget and/or mediums skeleton
-function WidgetSkeleton() {
-  return (
-    <div className="grid md:grid-cols-2 grid-cols-4 gap-2">
-      <div className="col-span-1">
-        <div role="status" className="max-w-sm animate-pulse">
-          <div className="h-16 bg-accent rounded-md w-auto"></div>
-        </div>
-      </div>
-      <div className="col-span-1">
-        <div role="status" className="max-w-sm animate-pulse">
-          <div className="h-16 bg-accent rounded-md w-auto"></div>
-        </div>
-      </div>
-      <div className="col-span-1">
-        <div role="status" className="max-w-sm animate-pulse">
-          <div className="h-16 bg-accent rounded-md w-auto"></div>
-        </div>
-      </div>
-      <div className="col-span-1">
-        <div role="status" className="max-w-sm animate-pulse">
-          <div className="h-16 bg-accent rounded-md w-auto"></div>
-        </div>
-      </div>
-      <span className="sr-only">Loading...</span>
-    </div>
-  );
-}
+import { AnswerSkeleton, WebSourceSkeleton } from './Skeletons';
+import ImageVideoWidget from './ImageVideoWidget';
 
 interface QACellProps {
   webSources: WebSource[] | null;
@@ -64,59 +14,6 @@ interface QACellProps {
   answer: string | null;
   query: string;
   metadata: MetaData | null;
-}
-
-function Widgets(props: Pick<QACellProps, 'mediums'>) {
-  return (
-    <div className="mb-2">
-      {props.mediums === null ? (
-        <WidgetSkeleton />
-      ) : (
-        <div className="grid md:grid-cols-2 grid-cols-4 gap-2">
-          {props.mediums.slice(0, 4).map((medium) => (
-            <div
-              key={medium.url}
-              className="h-24 md:h-48 bg-accent rounded-md overflow-hidden shadow-md hover:scale-[1.03] hover:shadow-lg duration-200 animate-slide-down"
-            >
-              {medium.medium === 'image' ? (
-                <Link key={medium.image} href={medium.image} target="_blank">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    loading="lazy"
-                    src={medium.image}
-                    alt={medium.title}
-                    className="h-full w-full object-cover rounded-md transition-all ease-in-out animate-[appear_150ms_cubic-bezier(0.4,_0,_0.2,_1)_1500ms_forwards]"
-                  />
-                </Link>
-              ) : medium.medium === 'video' ? (
-                medium.url.includes('youtube') ? (
-                  <iframe
-                    width="100%"
-                    height="100%"
-                    src={`https://www.youtube.com/embed/${new URLSearchParams(
-                      new URL(medium.url).search
-                    ).get('v')}`}
-                    title={medium.title}
-                    style={{ border: 0 }}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  ></iframe>
-                ) : (
-                  <video
-                    controls
-                    className="h-full w-full object-cover rounded-md"
-                  >
-                    <source src={medium.url} type="video/mp4" />
-                    Your browser does not support the video tag.
-                  </video>
-                )
-              ) : null}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
 }
 
 // Convert [1,2,...] to [1][2]...
@@ -171,7 +68,7 @@ function preprocessLatexFormulas(text: string): string {
   return augmentedFormulas;
 }
 
-export default function QACell(props: QACellProps) {
+export default function ChatHistoryItem(props: QACellProps) {
   const { answer, webSources } = props;
 
   const formattedAnswer = useMemo(() => {
@@ -215,10 +112,9 @@ export default function QACell(props: QACellProps) {
           <div className="flex grid grid-flow-col gap-2 px-md sm:grid-cols-2 md:px-0 md:grid-cols-4 overflow-x-auto">
             {props.webSources === null ? (
               <>
-                <WebSourceSkeleton />
-                <WebSourceSkeleton />
-                <WebSourceSkeleton />
-                <WebSourceSkeleton />
+                {[...Array(4)].map((_, index) => (
+                  <WebSourceSkeleton key={index} />
+                ))}
               </>
             ) : (
               <>
@@ -268,7 +164,7 @@ export default function QACell(props: QACellProps) {
             Answer
           </h2>
           <div className="md:hidden">
-            <Widgets mediums={props.mediums} />
+            <ImageVideoWidget mediums={props.mediums} />
           </div>
           {props.answer === null ? (
             <AnswerSkeleton />
@@ -284,7 +180,7 @@ export default function QACell(props: QACellProps) {
       </div>
       <div className="col-span-4 hidden md:block">
         <div className="sticky top-4 space-y-4">
-          <Widgets mediums={props.mediums} />
+          <ImageVideoWidget mediums={props.mediums} />
         </div>
       </div>
     </div>
