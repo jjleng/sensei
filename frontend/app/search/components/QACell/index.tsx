@@ -76,15 +76,16 @@ function Widgets(props: Pick<QACellProps, 'mediums'>) {
           {props.mediums.slice(0, 4).map((medium) => (
             <div
               key={medium.url}
-              className="h-24 md:h-48 bg-accent rounded-md overflow-hidden"
+              className="h-24 md:h-48 bg-accent rounded-md overflow-hidden shadow-md hover:scale-[1.03] hover:shadow-lg duration-200 animate-slide-down"
             >
               {medium.medium === 'image' ? (
                 <Link key={medium.image} href={medium.image} target="_blank">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
+                    loading="lazy"
                     src={medium.image}
                     alt={medium.title}
-                    className="h-full w-full object-cover rounded-md hover:scale-[1.03] duration-150"
+                    className="h-full w-full object-cover rounded-md transition-all ease-in-out animate-[appear_150ms_cubic-bezier(0.4,_0,_0.2,_1)_1500ms_forwards]"
                   />
                 </Link>
               ) : medium.medium === 'video' ? (

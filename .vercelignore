@@ -28,3 +28,6 @@ dist
 
 __pycache__
 .mypy_cache
+backend
+proxy
+venv
