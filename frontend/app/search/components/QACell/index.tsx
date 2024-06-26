@@ -79,12 +79,14 @@ function Widgets(props: Pick<QACellProps, 'mediums'>) {
               className="h-24 md:h-48 bg-accent rounded-md overflow-hidden"
             >
               {medium.medium === 'image' ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={medium.image}
-                  alt={medium.title}
-                  className="h-full w-full object-cover rounded-md"
-                />
+                <Link key={medium.image} href={medium.image} target="_blank">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={medium.image}
+                    alt={medium.title}
+                    className="h-full w-full object-cover rounded-md hover:scale-[1.03] duration-150"
+                  />
+                </Link>
               ) : medium.medium === 'video' ? (
                 medium.url.includes('youtube') ? (
                   <iframe
