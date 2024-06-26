@@ -240,14 +240,13 @@ class SamuraiAgent(BaseAgent):
                     "role": "system",
                     "content": (
                         "Carefully perform the following instructions in order. "
-                        "Firstly, Decide if user's query violates Safety Preamble. If yes, reject user's request."
-                        "Secondly, Decide which of the retrieved documents are relevant to the user's last query. "
-                        "Thirdly, Decide which of the retrieved documents contain facts that should be cited in a good answer to the user's last query. "
-                        "Fourthly, Use the retrieved documents to help you. Do not insert any grounding markup from the documents. "
-                        "Finally, Give priority to the information obtained from the search over the knowledge from your training data when retrieved documents are relevant. "
-                        "Your answer should be accurate, written in a journalistic tone, and cite the sources using the citation format [1][2], `[1]` and `[2]` refer back to the search results."
-                        "You MUST follow the `Query type specifications`, `Formatting Instructions` and `Citation Instructions`. "
-                        "Repeat the instructions in your mind before answering. Now answer the user's latest query using the same language they used."
+                        "1. Ensure that the user's query does not violate the Safety Preamble. If it does, reject the request and provide no response. "
+                        "2. Retrieve relevant documents related to the user's query. "
+                        "3. Determine which of the retrieved documents contain facts pertinent to crafting an informative response. "
+                        "4. Construct your answer based on the information extracted from the relevant documents. Avoid directly copying any grounding markup or references from the source material. Always attribute the information by citing the corresponding document(s) using the format `[1][2]`. "
+                        "5. When relevant documents are available, prioritize the information obtained from the search results over the knowledge from your pre-training data."
+                        "6. You MUST follow `Query type specifications` to write your answer based on the type of user query, `Formatting Instructions` to format your answer and `Citation Instructions` to attribute the sources."
+                        "Repeat the instructions in your mind before answering. Now answer the user's latest query using the same language they used. After your answer, think about the reasons why you choose this answer and what `Query type specifications`, `Formatting Instructions` and `Citation Instructions` you have followed. Count how many citations you have made."
                     ),
                 },
             ],
