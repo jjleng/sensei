@@ -36,6 +36,8 @@
 
     --brand: #00B0D8;
     --brand-foreground: #FFFFFF;
+
+    --secondary-light: 240 5.9% 95%;
   }
 
   .dark {
@@ -69,6 +71,8 @@
 
     --brand: #00B0D8;
     --brand-foreground: #FFFFFF;
+
+    --secondary-light: 240 3.7% 30%;
   }
 }
 

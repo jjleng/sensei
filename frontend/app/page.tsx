@@ -2,7 +2,7 @@
 
 import React, { useContext } from 'react';
 import { useRouter } from 'next/navigation';
-import SearchInputBig from './components/SearchInputBig';
+import SearchArea from './components/SearchArea';
 import Context from './context';
 
 export default function Home() {
@@ -16,7 +16,7 @@ export default function Home() {
     >
       <div className="w-full sm:max-w-2xl flex flex-col items-center">
         <div className="text-3xl mb-5">Discover Answers with Sensei</div>
-        <SearchInputBig
+        <SearchArea
           onSearch={(val) => {
             router.push('/search');
             dispatch!({ type: 'UPDATE_CURRENT_QUERY', payload: val });
