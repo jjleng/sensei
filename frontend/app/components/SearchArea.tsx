@@ -17,6 +17,8 @@ type ManagedSearchAreaProps = Pick<
   onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onKeyDown?: (e: React.KeyboardEvent) => void;
   onSubmit?: () => void;
+  cursorPosition?: number;
+  setCursorPosition?: (position: number) => void;
 };
 
 export const ManagedSearchArea = (props: ManagedSearchAreaProps) => {
@@ -25,6 +27,9 @@ export const ManagedSearchArea = (props: ManagedSearchAreaProps) => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     props.onChange?.(e);
+    if (props.setCursorPosition) {
+      props.setCursorPosition(e.target.selectionStart || 0);
+    }
   };
 
   const value = props.value;
@@ -33,13 +38,13 @@ export const ManagedSearchArea = (props: ManagedSearchAreaProps) => {
     if (!textareaRef.current) return;
 
     const textarea = textareaRef.current;
-
     textarea.style.height = 'auto'; // Reset height to auto to recalculate
     textarea.style.height = `${textarea.scrollHeight}px`; // Set height based on scroll height
     textarea.focus();
-    const length = textarea.value.length;
-    textarea.setSelectionRange(length, length);
-  }, [value]);
+    if (props.cursorPosition !== undefined) {
+      textarea.setSelectionRange(props.cursorPosition, props.cursorPosition);
+    }
+  }, [props.value, props.cursorPosition]);
 
   const disabled = !!props.disabled || !value;
 
