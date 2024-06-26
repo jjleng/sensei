@@ -8,7 +8,7 @@ import RichContentRenderer from '@/components/RichContentRenderer';
 import { AnswerSkeleton, WebSourceSkeleton } from './Skeletons';
 import ImageVideoWidget from './ImageVideoWidget';
 
-interface QACellProps {
+interface ChatHistoryItemProps {
   webSources: WebSource[] | null;
   mediums: (MediumImage | MediumVideo)[] | null;
   answer: string | null;
@@ -68,7 +68,7 @@ function preprocessLatexFormulas(text: string): string {
   return augmentedFormulas;
 }
 
-export default function ChatHistoryItem(props: QACellProps) {
+export default function ChatHistoryItem(props: ChatHistoryItemProps) {
   const { answer, webSources } = props;
 
   const formattedAnswer = useMemo(() => {
@@ -85,9 +85,9 @@ export default function ChatHistoryItem(props: QACellProps) {
   return (
     <div className="grid md:grid-cols-12 grid-cols-1 gap-6 py-8 text-text-light dark:text-text-dark">
       <div className="col-span-8">
-        <h1 className="font-display text-3xl font-regular mb-4">
+        <pre className="font-display text-3xl font-regular mb-4">
           {props.query}
-        </h1>
+        </pre>
 
         <div className="mb-6">
           {props.webSources?.length !== 0 && (
