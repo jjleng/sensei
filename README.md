@@ -3,7 +3,7 @@
 Sensei Search is an AI-powered tool designed to deliver the relevant search results.
 
 ## 🎥 Demo
-http://sensei-frontend.default.52.24.120.109.sslip.io/
+https://www.heysensei.app
 
 ## 📸 Screenshots
 
