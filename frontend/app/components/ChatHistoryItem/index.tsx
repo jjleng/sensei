@@ -85,7 +85,7 @@ export default function ChatHistoryItem(props: ChatHistoryItemProps) {
   return (
     <div className="grid md:grid-cols-12 grid-cols-1 gap-6 py-8 text-text-light dark:text-text-dark">
       <div className="col-span-8">
-        <pre className="font-display text-3xl font-regular mb-4">
+        <pre className="font-display text-3xl font-regular mb-4 w-full whitespace-pre-wrap">
           {props.query}
         </pre>
 
