@@ -235,7 +235,7 @@ class SamuraiAgent(BaseAgent):
                     "role": "system",
                     "content": system_prompt,
                 },
-                {"role": "user", "content": self.chat_messages[-1]["content"]},
+                {"role": "user", "content": f'{self.chat_messages[-1]["content"]}. (You MUST use citations in your answer if you cited search documents. You MUST follow `Query type specifications` and `Formatting Instructions` to write and format your answer.)'},
                 {
                     "role": "system",
                     "content": (
@@ -243,10 +243,9 @@ class SamuraiAgent(BaseAgent):
                         "1. Ensure that the user's query does not violate the Safety Preamble. If it does, reject the request and provide no response. "
                         "2. Retrieve relevant documents related to the user's query. "
                         "3. Determine which of the retrieved documents contain facts pertinent to crafting an informative response. "
-                        "4. Construct your answer based on the information extracted from the relevant documents. Avoid directly copying any grounding markup or references from the source material. Always attribute the information by citing the corresponding document(s) using the format `[1][2]` while composing the answer. "
+                        "4. Construct your answer based on the information extracted from the relevant documents. Avoid directly copying any grounding markup or references, such as [1][2], from the source material. Always attribute the information by citing the corresponding document(s) using the format `[1][2]` while composing the answer. NEVER include a References or Sources section at the end of your answer. "
                         "5. When relevant documents are available, prioritize the information obtained from the search results over the knowledge from your pre-training data."
-                        "6. You MUST follow `Query type specifications` to write your answer based on the type of user query. You MUST follow `Formatting Instructions` to format your answer and `Citation Instructions` to attribute the sources."
-                        "Repeat the instructions in your mind before answering."
+                        "Now answer user's latest query using the same language the user used: "
                     ),
                 }
             ],
