@@ -35,8 +35,11 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <div className="h-screen">
+              <Navbar />
               <Sidebar />
-              <div className="ml-[var(--sidebar-width)]">{children}</div>
+              <div className="ml-0 sm:ml-[var(--sidebar-width)]">
+                {children}
+              </div>
             </div>
           </ThemeProvider>
         </Providers>

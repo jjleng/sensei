@@ -55,7 +55,12 @@ const RichContentRenderer: React.FC<Props> = ({
             if (children && children?.[0].match(/^\d+$/)) {
               const citationNumber = children[0];
               return (
-                <a href={href} className="inline-block" target="_blank">
+                <a
+                  href={href}
+                  className="inline-block"
+                  style={{ verticalAlign: 'top' }}
+                  target="_blank"
+                >
                   <Citation number={Number(citationNumber)} />
                 </a>
               );
