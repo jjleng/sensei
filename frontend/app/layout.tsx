@@ -4,6 +4,7 @@ import '@/globals.css';
 import { Providers } from '@/providers';
 import Navbar from '@/components/Navbar';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import Sidebar from './components/Sidebar';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -33,8 +34,10 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <Navbar />
-            {children}
+            <div className="h-screen">
+              <Sidebar />
+              <div className="ml-[var(--sidebar-width)]">{children}</div>
+            </div>
           </ThemeProvider>
         </Providers>
       </body>

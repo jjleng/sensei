@@ -25,7 +25,7 @@ export default function ImageVideoWidget(props: ImageVideoWidgetProps) {
                     loading="lazy"
                     src={medium.image}
                     alt={medium.title}
-                    className="h-full w-full object-cover rounded-md transition-all ease-in-out animate-[appear_150ms_cubic-bezier(0.4,_0,_0.2,_1)_1500ms_forwards]"
+                    className="h-full w-full object-cover rounded-md transition-all ease-in-out"
                   />
                 </Link>
               ) : medium.medium === 'video' ? (
