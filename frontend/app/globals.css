@@ -5,6 +5,7 @@
 @layer base {
   :root {
     --sidebar-width: 5rem;
+    --half-width-plus-half-sidebar: calc(50% + var(--sidebar-width) / 2);
 
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
