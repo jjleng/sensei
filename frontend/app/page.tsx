@@ -15,7 +15,11 @@ export default function Home() {
       style={{ minHeight: 'calc(100vh - 60px)' }}
     >
       <div className="w-full sm:max-w-2xl flex flex-col items-center">
-        <div className="text-3xl mb-5">Discover Answers with Sensei</div>
+        <div>
+          <pre className="font-display text-3xl font-regular mb-4 w-full whitespace-pre-wrap">
+            Discover Answers with Sensei
+          </pre>
+        </div>
         <SearchArea
           onSearch={(val) => {
             router.push('/search');

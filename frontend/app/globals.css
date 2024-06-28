@@ -4,6 +4,8 @@
 
 @layer base {
   :root {
+    --sidebar-width: 5rem;
+
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
 
