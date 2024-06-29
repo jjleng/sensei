@@ -14,9 +14,18 @@ const Sidebar = () => {
   return (
     <div className="hidden fixed top-0 left-0 w-0 sm:w-[var(--sidebar-width)] sm:flex flex-col items-center bg-accent dark:bg-accent/70 py-4 h-screen">
       <TooltipProvider>
-        <div className="flex-shrink-0 mb-4">
-          <Image src="/sensei.svg" alt="logo" width={32} height={32} />
-        </div>
+        <Tooltip delayDuration={0}>
+          <TooltipTrigger asChild>
+            <Link href="/">
+              <div className="flex-shrink-0 hover:opacity-50">
+                <Image src="/sensei.svg" alt="logo" width={32} height={32} />
+              </div>
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="shadow-none">
+            Sensei
+          </TooltipContent>
+        </Tooltip>
         <nav className="flex-1 mt-10 flex flex-col items-center justify-between">
           <div>
             <Tooltip delayDuration={0}>
