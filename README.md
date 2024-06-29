@@ -10,18 +10,14 @@ https://www.heysensei.app
 
 ### Light Mode
 <div align="center">
-  <img src="./docs/screenshot.png" alt="Screenshot" max-width="600">
+  <img src="./docs/lennon.png" alt="Screenshot - Lennon" max-width="600">
 </div>
 
 ### Dark Mode
 <div align="center">
-  <img src="./docs/darkmode.png" alt="Dark Mode Screenshot" max-width="600">
+  <img src="./docs/programming.png" alt="Screenshot - Programming" max-width="600">
 </div>
 
-
-## 📌 Latest Updates
-- 06/21/2024 - Add a button to copy code blocks
-- 06/19/2024 - Sharable link of search history
 
 ## 💡 Insights from Utilizing Open Source LLMs
 
