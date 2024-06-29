@@ -4,6 +4,7 @@
 
 @layer base {
   :root {
+    --navbar-height: 3.5rem;
     --sidebar-width: 5rem;
     --half-width-plus-half-sidebar: calc(50% + var(--sidebar-width) / 2);
 
@@ -129,6 +130,10 @@
 .rich-content-renderer {
   max-width: 100% !important;
   line-height: 1.5 !important;
+}
+
+.rich-content-renderer ul,ol {
+  padding-inline-start: 0 !important;
 }
 
 .rich-content-renderer li p:first-child {

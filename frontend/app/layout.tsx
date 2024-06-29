@@ -30,14 +30,13 @@ export default function RootLayout({
         <Providers>
           <ThemeProvider
             attribute="class"
-            defaultTheme="system"
-            enableSystem
+            defaultTheme="dark"
             disableTransitionOnChange
           >
             <div className="h-screen">
               <Navbar />
               <Sidebar />
-              <div className="ml-0 sm:ml-[var(--sidebar-width)]">
+              <div className="ml-0 sm:ml-[var(--sidebar-width)] pt-[var(--navbar-height)] sm:pt-0">
                 {children}
               </div>
             </div>
