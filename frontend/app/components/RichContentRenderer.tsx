@@ -25,7 +25,7 @@ const RichContentRenderer: React.FC<Props> = ({
   }
 
   return (
-    <div className="rich-content-renderer mb-4 overflow-x-auto">
+    <div className="rich-content-renderer mb-4 overflow-x-auto prose dark:prose-invert">
       <ReactMarkdown
         remarkPlugins={remarkPlugins}
         rehypePlugins={[rehypeRaw, ...(enableMath ? [rehypeKatex] : [])]}
@@ -57,7 +57,7 @@ const RichContentRenderer: React.FC<Props> = ({
               return (
                 <a
                   href={href}
-                  className="inline-block"
+                  className="inline-block not-prose"
                   style={{ verticalAlign: 'top' }}
                   target="_blank"
                 >

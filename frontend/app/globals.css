@@ -126,9 +126,18 @@
   }
 }
 
+.rich-content-renderer {
+  max-width: 100% !important;
+  line-height: 1.5 !important;
+}
+
 .rich-content-renderer li p:first-child {
   display: inline;
   margin: 0;
+}
+
+.rich-content-renderer pre {
+  padding: 0 !important;
 }
 
 @layer utilities {
