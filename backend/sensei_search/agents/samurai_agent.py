@@ -289,6 +289,8 @@ class SamuraiAgent(BaseAgent):
         # This can already give us a good context for generating search queries and answers
         await self.load_chat_history(self.thread_id, ["user"])
 
+        logger.info(f"User original query: {user_message}")
+
         # Append user message to chat history
         self.append_message(role="user", content=user_message)
 
