@@ -9,7 +9,7 @@ import {
   DrawerTrigger,
   DrawerContent,
   DrawerClose,
-} from '@/components/ui/drawer';
+} from '@/components/ui/Drawer';
 import { Separator } from '@/components/ui/Separator';
 import { Github, Menu, Plus } from 'lucide-react';
 import { DarkModeTogglePlain } from './DarkModeToggle';
