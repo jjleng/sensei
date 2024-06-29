@@ -58,7 +58,7 @@ const RichContentRenderer: React.FC<Props> = ({
                 <a
                   href={href}
                   className="inline-block not-prose"
-                  style={{ verticalAlign: 'top' }}
+                  style={{ verticalAlign: 'top', paddingTop: 2 }}
                   target="_blank"
                 >
                   <Citation number={Number(citationNumber)} />
