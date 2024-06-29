@@ -32,7 +32,9 @@ export default function Navbar() {
     <nav className="border-b sm:hidden fixed top-0 left-0 w-full bg-background h-[var(--navbar-height)]">
       <div className="max-w-screen-lg mx-auto px-4 sm:px-6 md:px-0 flex items-center space-x-2">
         <div className="flex items-center py-3">
-          <Image src="/sensei.svg" alt="logo" width={28} height={28} />
+          <Link href="/">
+            <Image src="/sensei.svg" alt="logo" width={28} height={28} />
+          </Link>
         </div>
         <Drawer>
           <DrawerTrigger asChild>
