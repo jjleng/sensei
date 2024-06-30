@@ -1,5 +1,6 @@
 import asyncio
 import os
+import re
 import uuid
 from datetime import datetime
 from typing import List, Optional, Tuple, Union
@@ -16,10 +17,11 @@ from sensei_search.chat_store import (
     MediumVideo,
     MetaData,
     WebResult,
+    ThreadMetadata
 )
 from sensei_search.env import load_envs
 from sensei_search.logger import logger
-from sensei_search.prompts import answer_prompt, classification_prompt, search_prompt
+from sensei_search.prompts import answer_prompt, classification_prompt, search_prompt, related_questions_prompt
 from sensei_search.tools import Category, GeneralResult
 from sensei_search.tools import Input as SearxNGInput
 from sensei_search.tools import TopResults, searxng_search_results_json
@@ -113,6 +115,12 @@ class SamuraiAgent(BaseAgent):
         """
         await self.emitter.emit(EventEnum.answer.value, {"data": answer})
 
+    async def emit_related_questions(self, related_questions: List[str]):
+        """
+        Send the related questions to the frontend.
+        """
+        await self.emitter.emit(EventEnum.related_questions.value, {"data": related_questions})
+
     async def process_user_query(self):
         """
         Generate a search query based on the chat history and the user's current query,
@@ -129,6 +137,7 @@ class SamuraiAgent(BaseAgent):
         materialized_search_prompt = search_prompt.format(
             chat_history=chat_history,
             user_current_query=user_current_query,
+            current_date=datetime.now().isoformat(),
         )
 
         materialized_classify_prompt = classification_prompt.format(
@@ -205,6 +214,31 @@ class SamuraiAgent(BaseAgent):
             html_web_pages = await asyncio.gather(*tasks)
             return [trafilatura.extract(page) for page in html_web_pages]
 
+    async def gen_related_questions(self, web_pages: List[str]) -> List[str]:
+        search_results = "\n\n".join([f"Document: {i + 1}\n{page}" for i, page in enumerate(web_pages)])
+        # We are capping the search results at 5000 words, so that we can use the small model
+        search_results = search_results[:5000]
+
+        user_current_query = self.chat_messages[-1]["content"]
+        prompt = related_questions_prompt.format(user_current_query=user_current_query, search_results=search_results)
+
+        try:
+
+            client = OpenAI(base_url=os.environ["SM_MODLE_URL"], api_key=os.environ["SM_MODEL_API_KEY"])
+            response = client.chat.completions.create(
+                    model=os.environ["SM_MODEL"],
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.0,
+                    max_tokens=500,
+                    stream=False,
+                ),
+
+            return [re.sub(r'^\s*\d+\.\s*', '', item) for item in (response[0].choices[0].message.content or "").split('\n')]
+        except Exception as e:
+            logger.exception(f"Error generating related questions: {e}")
+            return []
+
+
     async def gen_answer(self, web_pages: List[str]):
         """
         Generate an answer based on the search results and the user's query.
@@ -214,9 +248,7 @@ class SamuraiAgent(BaseAgent):
         # We only load user's queries from the chat history to save LLM tokens
         chat_history = self.chat_history_to_string(["user"])
 
-        search_results = ""
-        for i, page in enumerate(web_pages):
-            search_results += f"Document: {i + 1}\n{page}\n\n"
+        search_results = "\n\n".join([f"Document: {i + 1}\n{page}" for i, page in enumerate(web_pages)])
 
         system_prompt = answer_prompt.format(
             chat_history=chat_history,
@@ -235,7 +267,7 @@ class SamuraiAgent(BaseAgent):
                     "role": "system",
                     "content": system_prompt,
                 },
-                {"role": "user", "content": f'{self.chat_messages[-1]["content"]}. (You MUST use citations in your answer if you cited search documents. You MUST follow `Query type specifications` and `Formatting Instructions` to write and format your answer.)'},
+                {"role": "user", "content": f'{self.chat_messages[-1]["content"]}. (You MUST follow `Query type specifications` and `Formatting Instructions` to write and format your answer.)'},
                 {
                     "role": "system",
                     "content": (
@@ -300,14 +332,18 @@ class SamuraiAgent(BaseAgent):
         logger.info(f"Search Query: {query}")
 
         # We should check if the tags contain 'needs_search'. But for now, we always perform a search
-        search_input = SearxNGInput(query=query, categories=[Category.general])
         tags = enriched_query["tags"]
-        metadata = MetaData(has_math=True if tags and tags["has_math"] else False)
+        if tags['needs_search']:
+            search_input = SearxNGInput(query=query, categories=[Category.general])
+            metadata = MetaData(has_math=True if tags and tags["has_math"] else False)
 
-        search_results, _ = await asyncio.gather(
-            searxng_search_results_json(search_input),
-            self.emit_metadata(metadata=metadata),
-        )
+            search_results, _ = await asyncio.gather(
+                searxng_search_results_json(search_input),
+                self.emit_metadata(metadata=metadata),
+            )
+        else:
+            search_results = TopResults(general=[], images=[], videos=[])
+
         general_results = search_results["general"]
 
         tasks = [
@@ -322,12 +358,15 @@ class SamuraiAgent(BaseAgent):
         )
         _, web_pages = results
 
-        tasks = [self.gen_answer(web_pages), self.process_medium(query, tags)]
-        answer, medium_results = await asyncio.gather(*tasks)
+        tasks = [self.gen_answer(web_pages), self.process_medium(query, tags), self.gen_related_questions(web_pages)]
+        answer, medium_results, related_questions = await asyncio.gather(*tasks)
 
         logger.info("Answer generated successfully.")
 
         logger.debug(f"Answer for query {query} is {answer}")
+        logger.debug(f"Related questions: {related_questions}")
+
+        await self.emit_related_questions(related_questions)
 
         # Save the chat history
         chat_store = ChatStore()

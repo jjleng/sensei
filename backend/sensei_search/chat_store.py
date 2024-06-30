@@ -43,6 +43,7 @@ class ThreadMetadata(TypedDict):
     user_id: str
     created_at: str
     slug: str
+    related_questions: List[str]
 
 
 class ChatStore:
@@ -70,8 +71,14 @@ class ChatStore:
     async def create_thread(self, thread_id: str, metadata: ThreadMetadata):
         await self.redis.hset(f"thread_metadata:{thread_id}", mapping=metadata)
 
-    async def get_thread_metadata(self, thread_id: str) -> ThreadMetadata:
-        return await self.redis.hgetall(f"thread_metadata:{thread_id}")
+    async def update_thread(self, thread_id: str, metadata: ThreadMetadata):
+        await self.redis.hset(f"thread_metadata:{thread_id}", mapping=metadata)
+
+    async def get_thread_metadata(self, thread_id: str) -> Optional[ThreadMetadata]:
+        metadata = await self.redis.hgetall(f"thread_metadata:{thread_id}")
+        if not metadata:
+            return None
+        return metadata
 
     async def save_chat_history(self, thread_id: str, chat_history: ChatHistory):
         logger.info(f"Saving chat history for thread {thread_id}")
@@ -83,12 +90,12 @@ class ChatStore:
         except Exception as e:
             logger.exception(e)
 
-    async def get_chat_history(self, thread_id: str) -> List[ChatHistory]:
+    async def get_chat_history(self, thread_id: str, range_start: int = 0, range_end: int = -1) -> List[ChatHistory]:
         # Here, we swallow the exception and log it. This is not ideal, but the goal
         # is to ensure users get a response even without the chat history context.
         try:
             logger.info(f"Load chat history for thread {thread_id}")
-            chat_history_json = await self.redis.lrange(self._get_key(thread_id), 0, -1)
+            chat_history_json = await self.redis.lrange(self._get_key(thread_id), range_start, range_end)
             return [json.loads(chat_history) for chat_history in chat_history_json]
         except Exception as e:
             logger.exception(e)

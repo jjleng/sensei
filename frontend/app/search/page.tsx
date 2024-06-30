@@ -18,6 +18,7 @@ import { io, Socket } from 'socket.io-client';
 import { useToast } from '@/hooks/use-toast';
 import { WebSource, MediumImage, MediumVideo, MetaData } from '@/types';
 import Context from '@/context';
+import { ListPlus, Plus } from 'lucide-react';
 
 // Query and Answer
 interface QA {
@@ -67,6 +68,9 @@ function SearchPage() {
 
   // Reference to the end of the list. This is used to scroll to the end of the list when a new QA is updated and/or added.
   const endOfList = useRef<HTMLDivElement>(null);
+
+  // Related questions
+  const [relatedQuestions, setRelatedQuestions] = useState<string[]>([]);
 
   const { addToast } = useToast();
 
@@ -140,13 +144,10 @@ function SearchPage() {
 
       if (!query || !queryId) return;
 
-      console.log('Current query: ', currentQuery);
-
       // If the current query's UUID is the same as the last processed query's UUID, don't create a new QA
       if (queryId === lastQueryIdRef.current) return;
       lastQueryIdRef.current = queryId;
 
-      console.log('Search query: ', query);
       setProcessing((prev) => true);
 
       // Add the new in-progress QA to the thread
@@ -227,6 +228,10 @@ function SearchPage() {
         );
       });
 
+      newSocket.on('related_questions', ({ data }) => {
+        setRelatedQuestions((relatedQuestions) => data);
+      });
+
       newSocket.on('disconnect', () => {
         setProcessing(false);
         console.log('Disconnected from the server');
@@ -261,7 +266,7 @@ function SearchPage() {
     <>
       {qaThread.map((qa, index) => (
         <React.Fragment key={qa.id}>
-          {index !== 0 && <Separator className="my-4" />}
+          {index !== 0 && <Separator />}
           <ChatHistoryItem
             webSources={qa.webSources}
             mediums={qa.mediums}
@@ -270,12 +275,43 @@ function SearchPage() {
             metadata={qa.metadata}
           />
           {/* Marker for the end of the QA cells */}
-          <div
-            ref={endOfList}
-            className={index === qaThread.length - 1 ? 'h-40 w-full' : ''}
-          ></div>
         </React.Fragment>
       ))}
+      {relatedQuestions.length > 0 && (
+        <>
+          <div className="grid md:grid-cols-12 grid-cols-1 gap-6 ">
+            <div className="col-span-8">
+              <Separator />
+              <div className="flex items-center mt-8 mb-3">
+                <ListPlus className="h-6 w-6 mr-2" />
+                <h2 className="text-lg font-medium my-0">Related</h2>
+              </div>
+              <ul className="m-0">
+                {relatedQuestions.map((question, index) => (
+                  <li
+                    key={index}
+                    className="flex m-0 justify-between items-center py-3 border-t hover:text-brand cursor-pointer"
+                    onClick={() => {
+                      setRelatedQuestions([]);
+                      dispatch!({
+                        type: 'UPDATE_CURRENT_QUERY',
+                        payload: question,
+                      });
+                    }}
+                  >
+                    <span>{question}</span>
+                    <span className="text-blue-500 cursor-pointer">
+                      <Plus className="text-brand" size={20} />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="col-span-4"></div>
+          </div>
+        </>
+      )}
+      <div ref={endOfList} className="h-40 w-full"></div>
       <div className="grid md:grid-cols-12 grid-cols-1 gap-0 md:gap-6 fixed left-1/2 sm:left-[var(--half-width-plus-half-sidebar)] bottom-0 md:bottom-10 transform -translate-x-1/2 max-w-screen-lg w-full">
         <div className="col-span-8 px-2 md:px-0">
           <SearchInput
