@@ -17,6 +17,7 @@ class EventEnum(str, Enum):
     medium_results = "medium_results"
     answer = "answer"
     metadata = "metadata"
+    related_questions = "related_questions"
 
 
 class EventEmitter(Protocol):
