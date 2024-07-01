@@ -1,6 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  forwardRef,
+  useImperativeHandle,
+} from 'react';
 
 interface SearchAreaProps {
   placeholder?: string;
@@ -21,9 +27,14 @@ type ManagedSearchAreaProps = Pick<
   setCursorPosition?: (position: number) => void;
 };
 
-export const ManagedSearchArea = (props: ManagedSearchAreaProps) => {
+export const ManagedSearchArea = forwardRef<
+  HTMLTextAreaElement,
+  ManagedSearchAreaProps
+>((props: ManagedSearchAreaProps, ref) => {
   const maxHeight = 450; // Max height for the textarea
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useImperativeHandle(ref, () => textareaRef.current as HTMLTextAreaElement);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     props.onChange?.(e);
@@ -88,7 +99,7 @@ export const ManagedSearchArea = (props: ManagedSearchAreaProps) => {
       </div>
     </div>
   );
-};
+});
 
 const SearchArea = (props: SearchAreaProps) => {
   const [value, setValue] = useState('');
