@@ -16,6 +16,8 @@ export default function SearchInput(props: SearchInputProps) {
   const [cursorPosition, setCursorPosition] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const textMeasureRef = useRef<HTMLDivElement>(null);
+  const bufferRange = 40; // Buffer range in pixels
 
   useEffect(() => {
     if (isMultiline && textareaRef.current) {
@@ -29,19 +31,38 @@ export default function SearchInput(props: SearchInputProps) {
     }
   }, [isMultiline, cursorPosition]);
 
+  const checkIfMultilineNeeded = (text: string) => {
+    if (textMeasureRef.current) {
+      textMeasureRef.current.textContent = text;
+      const inputWidth =
+        (isMultiline
+          ? textareaRef.current?.offsetWidth
+          : inputRef.current?.offsetWidth) || 0;
+      const textWidth = textMeasureRef.current.offsetWidth;
+
+      if (textWidth >= inputWidth - bufferRange) {
+        setIsMultiline(true);
+      } else if (
+        textWidth <= inputWidth - bufferRange * 2 &&
+        !text.includes('\n')
+      ) {
+        setIsMultiline(false);
+      }
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setValue(e.target.value);
+    const newValue = e.target.value;
+    setValue(newValue);
     setCursorPosition(e.target.selectionStart || 0);
+    checkIfMultilineNeeded(newValue);
   };
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     setValue(newValue);
     setCursorPosition(e.target.selectionStart || 0);
-
-    if (!newValue.includes('\n')) {
-      setIsMultiline(false);
-    }
+    checkIfMultilineNeeded(newValue);
   };
 
   const triggerSearch = () => {
@@ -71,9 +92,15 @@ export default function SearchInput(props: SearchInputProps) {
 
   return (
     <>
+      <div
+        ref={textMeasureRef}
+        className="absolute top-0 left-0 z-[-1] invisible whitespace-pre"
+        style={{ font: 'inherit', padding: 'inherit' }}
+      />
       {isMultiline ? (
         <div className="w-full p-1.5 sm:bg-offset rounded-md border-none">
           <ManagedSearchArea
+            ref={textareaRef}
             value={value}
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
