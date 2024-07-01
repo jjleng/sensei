@@ -275,6 +275,10 @@ function SearchPage() {
             metadata={qa.metadata}
           />
           {/* Marker for the end of the QA cells */}
+          <div
+            ref={endOfList}
+            className={index === qaThread.length - 1 ? 'h-0 w-full' : ''}
+          ></div>
         </React.Fragment>
       ))}
       {relatedQuestions.length > 0 && (
@@ -311,7 +315,7 @@ function SearchPage() {
           </div>
         </>
       )}
-      <div ref={endOfList} className="h-40 w-full"></div>
+      <div className="h-40 w-full"></div>
       <div className="grid md:grid-cols-12 grid-cols-1 gap-0 md:gap-6 fixed left-1/2 sm:left-[var(--half-width-plus-half-sidebar)] bottom-0 md:bottom-10 transform -translate-x-1/2 max-w-screen-lg w-full">
         <div className="col-span-8 px-2 md:px-0">
           <SearchInput

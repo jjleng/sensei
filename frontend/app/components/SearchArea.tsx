@@ -101,6 +101,8 @@ export const ManagedSearchArea = forwardRef<
   );
 });
 
+ManagedSearchArea.displayName = 'ManagedSearchArea';
+
 const SearchArea = (props: SearchAreaProps) => {
   const [value, setValue] = useState('');
   const maxHeight = 450; // Max height for the textarea
