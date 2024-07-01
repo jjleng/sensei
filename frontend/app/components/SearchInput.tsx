@@ -2,6 +2,8 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { ManagedSearchArea } from '@/components/SearchArea';
+import { ArrowUp } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface SearchInputProps {
   placeholder?: string;
@@ -109,6 +111,7 @@ export default function SearchInput(props: SearchInputProps) {
             setCursorPosition={setCursorPosition}
             placeholder={props.placeholder}
             disabled={props.disabled}
+            arrowDirection="up"
           />
         </div>
       ) : (
@@ -135,29 +138,18 @@ export default function SearchInput(props: SearchInputProps) {
                 <button
                   type="submit"
                   form="search-form"
-                  className={`flex items-center justify-center w-10 h-10 rounded-full ${
+                  className={`flex items-center justify-center w-8 h-8 mr-1 rounded-full ${
                     !disabled ? 'bg-brand hover:opacity-75' : 'bg-muted'
                   }`}
                   disabled={disabled}
                 >
-                  <svg
-                    className={`w-5 h-5 ${
+                  <ArrowUp
+                    className={cn(
                       !disabled
                         ? 'text-brand-foreground'
                         : 'text-muted-foreground'
-                    }`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M5 10l7-7m0 0l7 7m-7-7v18"
-                    ></path>
-                  </svg>
+                    )}
+                  />
                 </button>
               </div>
             </div>

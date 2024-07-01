@@ -1,5 +1,7 @@
 'use client';
 
+import { cn } from '@/lib/utils';
+import { ArrowRight, ArrowUp } from 'lucide-react';
 import React, {
   useState,
   useEffect,
@@ -25,6 +27,7 @@ type ManagedSearchAreaProps = Pick<
   onSubmit?: () => void;
   cursorPosition?: number;
   setCursorPosition?: (position: number) => void;
+  arrowDirection?: 'up' | 'right';
 };
 
 export const ManagedSearchArea = forwardRef<
@@ -60,7 +63,7 @@ export const ManagedSearchArea = forwardRef<
   const disabled = !!props.disabled || !value;
 
   return (
-    <div className="flex flex-col items-center p-4 px-2 rounded-md w-full max-w-2xl border border-2 bg-background">
+    <div className="flex flex-col items-center p-2 rounded-md w-full max-w-2xl border border-2 bg-background">
       <textarea
         ref={textareaRef}
         value={value}
@@ -74,27 +77,24 @@ export const ManagedSearchArea = forwardRef<
         <div></div>
         <button
           onClick={() => props.onSubmit?.()}
-          className={`ml-2 p-2 rounded-full flex items-center justify-center ${
+          className={`ml-2 rounded-full flex items-center justify-center w-8 h-8 ${
             !disabled ? 'bg-brand hover:opacity-75' : 'bg-muted'
           }`}
           disabled={disabled}
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
-            className={`w-4 h-4 ${
-              !disabled ? 'text-brand-foreground' : 'text-muted-foreground'
-            }`}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M14 5l7 7m0 0l-7 7m7-7H3"
+          {props.arrowDirection === 'up' ? (
+            <ArrowUp
+              className={cn(
+                !disabled ? 'text-brand-foreground' : 'text-muted-foreground'
+              )}
             />
-          </svg>
+          ) : (
+            <ArrowRight
+              className={cn(
+                !disabled ? 'text-brand-foreground' : 'text-muted-foreground'
+              )}
+            />
+          )}
         </button>
       </div>
     </div>
