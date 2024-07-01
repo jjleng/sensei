@@ -7,6 +7,7 @@ import { MediumImage, MediumVideo, MetaData, WebSource } from '@/types';
 import RichContentRenderer from '@/components/RichContentRenderer';
 import { AnswerSkeleton, WebSourceSkeleton } from './Skeletons';
 import ImageVideoWidget from './ImageVideoWidget';
+import { cn } from '@/lib/utils';
 
 interface ChatHistoryItemProps {
   webSources: WebSource[] | null;
@@ -82,10 +83,17 @@ export default function ChatHistoryItem(props: ChatHistoryItemProps) {
     return convertCitationsToMarkdownLinks(preprocessedAnswer, webSources);
   }, [answer, webSources]);
 
+  const queryLength = props.query.split(' ').length;
+
   return (
     <div className="grid md:grid-cols-12 grid-cols-1 gap-6 py-8">
       <div className="col-span-8">
-        <pre className="font-display text-3xl font-regular mb-4 w-full whitespace-pre-wrap">
+        <pre
+          className={cn(
+            'font-display  font-regular mb-4 w-full whitespace-pre-wrap',
+            queryLength >= 25 ? 'text-xl' : 'text-3xl'
+          )}
+        >
           {props.query}
         </pre>
 
