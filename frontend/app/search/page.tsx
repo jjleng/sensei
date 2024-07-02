@@ -19,6 +19,8 @@ import { useToast } from '@/hooks/use-toast';
 import { WebSource, MediumImage, MediumVideo, MetaData } from '@/types';
 import Context from '@/context';
 import { ListPlus, Plus } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import ChatThreadStore from '@/ChatThreadStore';
 
 // Query and Answer
 interface QA {
@@ -42,15 +44,14 @@ interface QueryParams {
   [key: string]: string | undefined | null;
 }
 
-function SearchPage() {
+export function SearchComponent(props: { threadId: string }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const threadIdParam = searchParams.get('threadId');
+
   // Conversation thread ID
   // Here, we generate a new thread ID for each page refresh. If the thread ID doesn't exist, server will crate a new thread.
   // Client could also choose to send in an existing thread ID to continue the conversation.
   // Ideally, the thread ID should be generated on the server and sent to the client. But for now, this is not the case.
-  const threadId = useRef(threadIdParam ?? uuidv4());
+  const threadId = useRef(props.threadId);
 
   // Store the websocket
   const socketRef = useRef<Socket | null>(null);
@@ -60,7 +61,7 @@ function SearchPage() {
   // QA thread is a list of QA objects. Each QA object represents a query and its response along with the search results.
   const [qaThread, setQAThread] = useState<QA[]>([]);
   // Current query is stored in the context.
-  const { currentQuery, dispatch } = useContext(Context);
+  const { currentQuery, isSidebarOpen, dispatch } = useContext(Context);
 
   // Store the last processed query's UUID, so that we don't process the same query multiple times.
   // React might re-render the component multiple times for the same query.
@@ -74,32 +75,6 @@ function SearchPage() {
 
   const { addToast } = useToast();
 
-  const updateQueryString = useCallback(
-    (newParams: QueryParams) => {
-      const currentParams = new URLSearchParams(searchParams.toString());
-
-      Object.keys(newParams).forEach((key) => {
-        if (newParams[key] !== undefined && newParams[key] !== null) {
-          currentParams.set(key, newParams[key]!);
-        } else {
-          currentParams.delete(key);
-        }
-      });
-
-      router.push(`?${currentParams.toString()}`);
-    },
-    [router, searchParams]
-  );
-
-  useEffect(() => {
-    if (threadIdParam) {
-      return;
-    }
-
-    // Otherwise, we want to set threadId in query string
-    updateQueryString({ threadId: threadId.current });
-  }, [threadIdParam, updateQueryString]);
-
   // TODO: instead of the client side fetching, move this to a server component
   useEffect(() => {
     const fetchData = async () => {
@@ -111,11 +86,13 @@ function SearchPage() {
           throw new Error('Failed to fetch the thread');
         }
 
-        const result = await response.json();
-        const updatedResult = result.map(({ web_results, ...rest }: any) => ({
-          webSources: web_results,
-          ...rest,
-        }));
+        const { thread_id, chat_history, metadata } = await response.json();
+        const updatedResult = chat_history.map(
+          ({ web_results, ...rest }: any) => ({
+            webSources: web_results,
+            ...rest,
+          })
+        );
         setQAThread(
           produce((draft) => {
             const existingIds = new Set(draft.map((item) => item.id));
@@ -125,6 +102,7 @@ function SearchPage() {
             draft.unshift(...uniqueResults);
           })
         );
+        setRelatedQuestions(metadata.related_questions);
       } catch (error) {
         addToast('Failed to fetch the thread', 'error');
       }
@@ -232,6 +210,20 @@ function SearchPage() {
         setRelatedQuestions((relatedQuestions) => data);
       });
 
+      newSocket.on('thread_metadata', ({ data }) => {
+        // Save to chat thread store
+        ChatThreadStore.addEntry({
+          id: threadId.current,
+          ts: data.created_at,
+          slug: data.slug,
+          displayName: data.name,
+        });
+
+        // Notify sidebar to update the list
+
+        router.push(`/search/${data.slug}`);
+      });
+
       newSocket.on('disconnect', () => {
         setProcessing(false);
         console.log('Disconnected from the server');
@@ -254,7 +246,7 @@ function SearchPage() {
 
       socketRef.current = newSocket;
     })();
-  }, [addToast, currentQuery, qaThread, dispatch]);
+  }, [addToast, currentQuery, qaThread, dispatch, router]);
 
   useEffect(() => {
     if (endOfList.current) {
@@ -316,7 +308,14 @@ function SearchPage() {
         </>
       )}
       <div className="h-40 w-full"></div>
-      <div className="grid md:grid-cols-12 grid-cols-1 gap-0 md:gap-6 fixed left-1/2 sm:left-[var(--half-width-plus-half-sidebar)] bottom-0 md:bottom-10 transform -translate-x-1/2 max-w-screen-lg w-full">
+      <div
+        className={cn(
+          'grid md:grid-cols-12 grid-cols-1 gap-0 md:gap-6 fixed left-1/2 bottom-0 md:bottom-10 transform -translate-x-1/2 max-w-screen-lg w-full',
+          isSidebarOpen
+            ? 'sm:left-[var(--half-width-plus-half-sidebar-expanded)]'
+            : 'sm:left-[var(--half-width-plus-half-sidebar-collapsed)]'
+        )}
+      >
         <div className="col-span-8 px-2 md:px-0">
           <SearchInput
             onSearch={(value) => {
@@ -332,10 +331,45 @@ function SearchPage() {
 }
 
 export default function Search() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const threadIdParam = searchParams.get('threadId');
+  // Conversation thread ID
+  // Here, we generate a new thread ID for each page refresh. If the thread ID doesn't exist, server will crate a new thread.
+  // Client could also choose to send in an existing thread ID to continue the conversation.
+  // Ideally, the thread ID should be generated on the server and sent to the client. But for now, this is not the case.
+  // TODO: update threadid generation code
+  const threadId = useRef(threadIdParam ?? uuidv4());
+
+  const updateQueryString = useCallback(
+    (newParams: QueryParams) => {
+      const currentParams = new URLSearchParams(searchParams.toString());
+
+      Object.keys(newParams).forEach((key) => {
+        if (newParams[key] !== undefined && newParams[key] !== null) {
+          currentParams.set(key, newParams[key]!);
+        } else {
+          currentParams.delete(key);
+        }
+      });
+
+      router.push(`?${currentParams.toString()}`);
+    },
+    [router, searchParams]
+  );
+
+  useEffect(() => {
+    if (threadIdParam) {
+      return;
+    }
+
+    // Otherwise, we want to set threadId in query string
+    updateQueryString({ threadId: threadId.current });
+  }, [threadIdParam, updateQueryString]);
   return (
     // TODO: add fallback
     <Suspense fallback={<div></div>}>
-      <SearchPage />
+      <SearchComponent threadId={threadId.current} />
     </Suspense>
   );
 }

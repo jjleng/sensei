@@ -9,7 +9,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from sensei_search.agents import SamuraiAgent
-from sensei_search.chat_store import ChatHistory, ChatStore
+from sensei_search.chat_store import ChatStore
+from sensei_search.models import ChatThread
 from sensei_search.logger import logger
 
 env = os.getenv("ENV", "development")
@@ -27,7 +28,7 @@ class SocketIOEmitter:
         self.sio = sio
         self.sid = sid
 
-    async def emit(self, event: str, data: Dict):
+    async def emit(self, event: str, data: Dict) -> None:
         await self.sio.emit(event, data, room=self.sid)
 
 
@@ -55,17 +56,17 @@ app.add_websocket_route("/socket.io/", sio_asgi_app)
 
 # Event handlers
 @sio.event
-async def connect(sid, environ):
+async def connect(sid: str, environ: Dict) -> None:
     print(f"Client connected: {sid}")
 
 
 @sio.event
-async def disconnect(sid):
+async def disconnect(sid: str) -> None:
     print(f"Client disconnected: {sid}")
 
 
 @sio.event
-async def sensei_ask(sid: str, thread_id: str, user_query: str):
+async def sensei_ask(sid: str, thread_id: str, user_query: str) -> None:
     """
     Handles the 'sensei_ask' event by creating a SamuraiAgent and running it.
 
@@ -77,7 +78,7 @@ async def sensei_ask(sid: str, thread_id: str, user_query: str):
     emitter = SocketIOEmitter(sio, sid)
     agent = SamuraiAgent(emitter=emitter, thread_id=thread_id)
 
-    async def run_agent():
+    async def run_agent() -> None:
         try:
             await agent.run(user_query)
         except Exception as e:
@@ -95,16 +96,19 @@ async def sensei_ask(sid: str, thread_id: str, user_query: str):
 
 
 @app.get("/threads/{thread_id}")
-async def get_thread(thread_id: str) -> List[ChatHistory]:
+async def get_thread(thread_id: str) -> ChatThread:
     """
     Fetches the chat history for a given thread.
     """
     logger.info(f"Fetching thread {thread_id}")
     chat_store = ChatStore()
 
-    return await chat_store.get_chat_history(thread_id)
+    chat_history, thread_metadata = await asyncio.gather(chat_store.get_chat_history(thread_id), chat_store.get_thread_metadata(thread_id))
+    # This won't happen in practice. If it does, clients will receive an error message.
+    assert thread_metadata is not None
+    return ChatThread(thread_id=thread_id, chat_history=chat_history, metadata=thread_metadata)
 
 
 @app.get("/health")
-async def health():
+async def health() -> Dict[str, str]:
     return {"status": "ok"}

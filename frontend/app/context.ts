@@ -1,4 +1,4 @@
-import { createContext } from 'react';
+import { createContext, useReducer, useContext } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface CurrentQuery {
@@ -9,6 +9,8 @@ export interface CurrentQuery {
 
 interface ContextType {
   currentQuery: CurrentQuery;
+  isSidebarOpen: boolean;
+  reloadSidebarCounter: number;
   dispatch?: React.Dispatch<Action>;
 }
 
@@ -17,13 +19,31 @@ type UpdateCurrentQueryAction = {
   payload: ContextType['currentQuery']['query'];
 };
 
-type Action = UpdateCurrentQueryAction;
+type ToggleSidebarAction = {
+  type: 'TOGGLE_SIDEBAR';
+  payload?: never;
+};
+
+type ReloadSidebarAction = {
+  type: 'RELOAD_SIDEBAR';
+  payload?: never;
+};
+
+export type Action =
+  | UpdateCurrentQueryAction
+  | ToggleSidebarAction
+  | ReloadSidebarAction;
 
 export default createContext<ContextType>({
   currentQuery: { query: null, queryId: null },
+  isSidebarOpen: false,
+  reloadSidebarCounter: 0,
 });
 
-export function reducer(state: ContextType, { type, payload }: Action) {
+export function reducer(
+  state: ContextType,
+  { type, payload }: Action
+): ContextType {
   switch (type) {
     case 'UPDATE_CURRENT_QUERY':
       let queryId: string | null = null;
@@ -31,13 +51,23 @@ export function reducer(state: ContextType, { type, payload }: Action) {
         queryId = uuidv4();
       }
       return {
+        ...state,
         currentQuery: {
-          ...state.currentQuery,
           query: payload,
           queryId,
         },
       };
+    case 'TOGGLE_SIDEBAR':
+      return {
+        ...state,
+        isSidebarOpen: !state.isSidebarOpen,
+      };
+    case 'RELOAD_SIDEBAR':
+      return {
+        ...state,
+        reloadSidebarCounter: state.reloadSidebarCounter + 1,
+      };
     default:
-      throw new Error();
+      throw new Error('Unknown action type');
   }
 }

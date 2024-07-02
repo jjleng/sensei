@@ -3,7 +3,7 @@ import os
 import re
 import uuid
 from datetime import datetime
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Union, Any
 
 import trafilatura  # type: ignore[import]
 from aiohttp import ClientSession, ClientTimeout
@@ -11,27 +11,35 @@ from openai import AsyncOpenAI, OpenAI
 
 from sensei_search.base_agent import BaseAgent, EnrichedQuery, EventEnum, QueryTags
 from sensei_search.chat_store import (
-    ChatHistory,
+    ChatHistoryItem,
     ChatStore,
+    ThreadMetadata,
+)
+from sensei_search.models import (
     MediumImage,
     MediumVideo,
     MetaData,
     WebResult,
-    ThreadMetadata
 )
 from sensei_search.env import load_envs
 from sensei_search.logger import logger
-from sensei_search.prompts import answer_prompt, classification_prompt, search_prompt, related_questions_prompt
+from sensei_search.prompts import (
+    answer_prompt,
+    classification_prompt,
+    related_questions_prompt,
+    search_prompt,
+)
 from sensei_search.tools import Category, GeneralResult
 from sensei_search.tools import Input as SearxNGInput
 from sensei_search.tools import TopResults, searxng_search_results_json
+from sensei_search.utils import create_slug
 
 load_envs()
 
 FETCH_WEBPAGE_TIMEOUT = 3
 
 
-async def noop():
+async def noop() -> None:
     return None
 
 
@@ -66,16 +74,26 @@ class SamuraiAgent(BaseAgent):
     6. Return the response to the user.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
-    async def emit_metadata(self, metadata: MetaData):
+    async def emit_thread_metadata(self, metadata: ThreadMetadata) -> None:
+        """
+        Send the thread metadata to the frontend
+        """
+        await self.emitter.emit(EventEnum.thread_metadata.value, {"data": {
+            "created_at": metadata['created_at'],
+            "slug": metadata['slug'],
+            "name": metadata['name'],
+        }})
+
+    async def emit_metadata(self, metadata: MetaData) -> None:
         """
         Send the metadata to the frontend.
         """
         await self.emitter.emit(EventEnum.metadata.value, {"data": metadata})
 
-    async def emit_web_results(self, results: List[GeneralResult]):
+    async def emit_web_results(self, results: List[GeneralResult]) -> None:
         """
         Send the search results to the frontend.
         """
@@ -87,7 +105,7 @@ class SamuraiAgent(BaseAgent):
         # Emit the search results
         await self.emitter.emit(EventEnum.web_results.value, {"data": filtered_results})
 
-    async def emit_medium_results(self, results: TopResults):
+    async def emit_medium_results(self, results: TopResults) -> None:
         """
         Send the medium results to the frontend.
         """
@@ -109,19 +127,21 @@ class SamuraiAgent(BaseAgent):
             EventEnum.medium_results.value, {"data": filtered_results}
         )
 
-    async def emit_answer(self, answer: str):
+    async def emit_answer(self, answer: str) -> None:
         """
         Send the LLM answer to the frontend.
         """
         await self.emitter.emit(EventEnum.answer.value, {"data": answer})
 
-    async def emit_related_questions(self, related_questions: List[str]):
+    async def emit_related_questions(self, related_questions: List[str]) -> None:
         """
         Send the related questions to the frontend.
         """
-        await self.emitter.emit(EventEnum.related_questions.value, {"data": related_questions})
+        await self.emitter.emit(
+            EventEnum.related_questions.value, {"data": related_questions}
+        )
 
-    async def process_user_query(self):
+    async def process_user_query(self) -> EnrichedQuery:
         """
         Generate a search query based on the chat history and the user's current query,
         and classify the query to determine its nature and required handling.
@@ -162,6 +182,9 @@ class SamuraiAgent(BaseAgent):
 
         classify_response = classification_response.choices[0].message.content
 
+        if not classify_response:
+            raise ValueError("Classification response is empty.")
+
         classify_response = classify_response.strip('"').strip("'")
 
         logger.info(classify_response)
@@ -184,6 +207,9 @@ class SamuraiAgent(BaseAgent):
         )
 
         query = search_response.choices[0].message.content
+
+        if not query:
+            raise ValueError("Search query response is empty.")
 
         query = query.strip('"').strip("'")
 
@@ -215,31 +241,42 @@ class SamuraiAgent(BaseAgent):
             return [trafilatura.extract(page) for page in html_web_pages]
 
     async def gen_related_questions(self, web_pages: List[str]) -> List[str]:
-        search_results = "\n\n".join([f"Document: {i + 1}\n{page}" for i, page in enumerate(web_pages)])
+        search_results = "\n\n".join(
+            [f"Document: {i + 1}\n{page}" for i, page in enumerate(web_pages)]
+        )
         # We are capping the search results at 5000 words, so that we can use the small model
         search_results = search_results[:5000]
 
         user_current_query = self.chat_messages[-1]["content"]
-        prompt = related_questions_prompt.format(user_current_query=user_current_query, search_results=search_results)
+        prompt = related_questions_prompt.format(
+            user_current_query=user_current_query, search_results=search_results
+        )
 
         try:
 
-            client = OpenAI(base_url=os.environ["SM_MODLE_URL"], api_key=os.environ["SM_MODEL_API_KEY"])
-            response = client.chat.completions.create(
+            client = OpenAI(
+                base_url=os.environ["SM_MODLE_URL"],
+                api_key=os.environ["SM_MODEL_API_KEY"],
+            )
+            response = (
+                client.chat.completions.create(
                     model=os.environ["SM_MODEL"],
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.0,
                     max_tokens=500,
                     stream=False,
                 ),
+            )
 
-            return [re.sub(r'^\s*\d+\.\s*', '', item) for item in (response[0].choices[0].message.content or "").split('\n')]
+            return [
+                re.sub(r"^\s*\d+\.\s*", "", item)
+                for item in (response[0].choices[0].message.content or "").split("\n")
+            ]
         except Exception as e:
             logger.exception(f"Error generating related questions: {e}")
             return []
 
-
-    async def gen_answer(self, web_pages: List[str]):
+    async def gen_answer(self, web_pages: List[str]) -> str:
         """
         Generate an answer based on the search results and the user's query.
         """
@@ -248,7 +285,9 @@ class SamuraiAgent(BaseAgent):
         # We only load user's queries from the chat history to save LLM tokens
         chat_history = self.chat_history_to_string(["user"])
 
-        search_results = "\n\n".join([f"Document: {i + 1}\n{page}" for i, page in enumerate(web_pages)])
+        search_results = "\n\n".join(
+            [f"Document: {i + 1}\n{page}" for i, page in enumerate(web_pages)]
+        )
 
         system_prompt = answer_prompt.format(
             chat_history=chat_history,
@@ -267,7 +306,10 @@ class SamuraiAgent(BaseAgent):
                     "role": "system",
                     "content": system_prompt,
                 },
-                {"role": "user", "content": f'{self.chat_messages[-1]["content"]}. (You MUST follow `Query type specifications` and `Formatting Instructions` to write and format your answer.)'},
+                {
+                    "role": "user",
+                    "content": f'{self.chat_messages[-1]["content"]}. (You MUST follow `Query type specifications` and `Formatting Instructions` to write and format your answer.)',
+                },
                 {
                     "role": "system",
                     "content": (
@@ -279,7 +321,7 @@ class SamuraiAgent(BaseAgent):
                         "5. When relevant documents are available, prioritize the information obtained from the search results over the knowledge from your pre-training data."
                         "Now answer user's latest query using the same language the user used: "
                     ),
-                }
+                },
             ],
             temperature=0.0,
             max_tokens=2500,
@@ -312,14 +354,14 @@ class SamuraiAgent(BaseAgent):
         await self.emit_medium_results(medium_results)
         return medium_results
 
-    async def run(self, user_message: str):
+    async def run(self, user_message: str) -> None:
         """
         Entry point for the agent.
         """
         logger.info("samurai_agent runs")
         # To save LLM tokens, we only load user's queries from the chat history
         # This can already give us a good context for generating search queries and answers
-        await self.load_chat_history(self.thread_id, ["user"])
+        _, thread_metadata = await asyncio.gather(self.load_chat_history(self.thread_id, ["user"]), self.get_thread_metadata())
 
         logger.info(f"User original query: {user_message}")
 
@@ -333,7 +375,7 @@ class SamuraiAgent(BaseAgent):
 
         # We should check if the tags contain 'needs_search'. But for now, we always perform a search
         tags = enriched_query["tags"]
-        if tags['needs_search']:
+        if tags is None or tags["needs_search"]:
             search_input = SearxNGInput(query=query, categories=[Category.general])
             metadata = MetaData(has_math=True if tags and tags["has_math"] else False)
 
@@ -346,20 +388,17 @@ class SamuraiAgent(BaseAgent):
 
         general_results = search_results["general"]
 
-        tasks = [
+        _, web_pages = await asyncio.gather(
             # Sending search results to the client ASAP
             self.emit_web_results(general_results),
             # Fetch web page contents for llm to use as context
-            self.fetch_web_pages(general_results[:5]),
-        ]
+            self.fetch_web_pages(general_results[:5]),)
 
-        results: Tuple[None, List[str]] = await asyncio.gather(
-            *tasks
+        answer, medium_results, related_questions = await asyncio.gather(
+            self.gen_answer(web_pages),
+            self.process_medium(query, tags),
+            self.gen_related_questions(web_pages)
         )
-        _, web_pages = results
-
-        tasks = [self.gen_answer(web_pages), self.process_medium(query, tags), self.gen_related_questions(web_pages)]
-        answer, medium_results, related_questions = await asyncio.gather(*tasks)
 
         logger.info("Answer generated successfully.")
 
@@ -367,6 +406,18 @@ class SamuraiAgent(BaseAgent):
         logger.debug(f"Related questions: {related_questions}")
 
         await self.emit_related_questions(related_questions)
+
+        if not thread_metadata:
+            # Create a new thread metadata
+            thread_metadata = ThreadMetadata(
+                name=user_message[:50],
+                user_id="",
+                created_at=datetime.now().isoformat(),
+                slug=create_slug(user_message),
+                related_questions=related_questions,
+            )
+            # We send the thread metadata to the client for it save it in the local storage
+            await asyncio.gather(self.emit_thread_metadata(thread_metadata), self.upsert_thread_metadata(thread_metadata))
 
         # Save the chat history
         chat_store = ChatStore()
@@ -392,7 +443,7 @@ class SamuraiAgent(BaseAgent):
         if tags is not None and tags["has_math"]:
             metadata["has_math"] = True
 
-        chat_history: ChatHistory = {
+        chat_history: ChatHistoryItem = {
             "id": str(uuid.uuid4()),
             "thread_id": self.thread_id,
             "mediums": mediums,

@@ -4,7 +4,8 @@ import '@/globals.css';
 import { Providers } from '@/providers';
 import Navbar from '@/components/Navbar';
 import { ThemeProvider } from '@/components/ThemeProvider';
-import Sidebar from './components/Sidebar';
+import Sidebar from '@/components/Sidebar';
+import { MainLayout } from '@/components/MainLayout';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -36,9 +37,7 @@ export default function RootLayout({
             <div className="h-screen">
               <Navbar />
               <Sidebar />
-              <div className="ml-0 sm:ml-[var(--sidebar-width)] pt-[var(--navbar-height)] sm:pt-0">
-                {children}
-              </div>
+              <MainLayout>{children}</MainLayout>
             </div>
           </ThemeProvider>
         </Providers>
