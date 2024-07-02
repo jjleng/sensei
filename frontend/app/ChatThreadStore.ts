@@ -47,7 +47,7 @@ export default class ChatThreadStore {
     return allEntries.find((entry) => entry.slug === slug);
   }
 
-  private static getAllEntries(): ChatThreadEntry[] {
+  static getAllEntries(): ChatThreadEntry[] {
     const entriesJson = localStorage.getItem(this.storeKey);
     return entriesJson ? JSON.parse(entriesJson) : [];
   }
