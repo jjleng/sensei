@@ -5,7 +5,7 @@ from typing import Dict, List, Literal, Optional, Protocol
 from pydantic import BaseModel, Field
 from typing_extensions import TypedDict
 
-from sensei_search.chat_store import ChatStore
+from sensei_search.chat_store import ChatStore, ThreadMetadata
 
 
 class EventEnum(str, Enum):
@@ -16,8 +16,10 @@ class EventEnum(str, Enum):
     web_results = "web_results"
     medium_results = "medium_results"
     answer = "answer"
+    # Chat history metadata
     metadata = "metadata"
     related_questions = "related_questions"
+    thread_metadata = "thread_metadata"
 
 
 class EventEmitter(Protocol):
@@ -25,7 +27,7 @@ class EventEmitter(Protocol):
     A protocol for the EventEmitter class.
     """
 
-    async def emit(self, event: str, data: Dict): ...
+    async def emit(self, event: str, data: Dict) -> None: ...
 
 
 class QueryTags(TypedDict, total=False):
@@ -84,7 +86,7 @@ class BaseAgent(ABC):
     emitter: EventEmitter
     thread_id: str
 
-    def __init__(self, thread_id: str, emitter: EventEmitter):
+    def __init__(self, thread_id: str, emitter: EventEmitter) -> None:
         self.chat_messages = []
         self.chat_messages_loaded = False
         self.thread_id = thread_id
@@ -92,7 +94,7 @@ class BaseAgent(ABC):
 
     async def load_chat_history(
         self, thread_id: str, roles: Optional[List[Literal["user", "assistant"]]] = None
-    ):
+    ) -> None:
         """
         Load the chat history for the current thread from Redis.
 
@@ -116,12 +118,21 @@ class BaseAgent(ABC):
 
         self.chat_messages_loaded = True
 
-    def append_message(self, role: str, content: str):
+    async def get_thread_metadata(self) -> Optional[ThreadMetadata]:
+        chat_store = ChatStore()
+
+        return await chat_store.get_thread_metadata(self.thread_id)
+
+    async def upsert_thread_metadata(self, metadata: ThreadMetadata) -> None:
+        chat_store = ChatStore()
+        await chat_store.update_thread(self.thread_id, metadata)
+
+    def append_message(self, role: str, content: str) -> None:
         self.chat_messages.append({"role": role, "content": content})
 
     def chat_history_to_string(
         self, roles: Optional[List[Literal["user", "assistant"]]] = None
-    ):
+    ) -> str:
         if roles is None:
             roles = ["user", "assistant"]
 
@@ -134,5 +145,5 @@ class BaseAgent(ABC):
         )
 
     @abstractmethod
-    async def run(self, user_message: str):
+    async def run(self, user_message: str) -> None:
         pass

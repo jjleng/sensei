@@ -811,6 +811,9 @@ python-engineio==4.9.1 ; python_version >= "3.9" and python_version < "4.0" \
 python-multipart==0.0.9 ; python_version >= "3.9" and python_version < "4.0" \
     --hash=sha256:03f54688c663f1b7977105f021043b0793151e4cb1c1a9d4a11fc13d622c4026 \
     --hash=sha256:97ca7b8ea7b05f977dc3849c3ba99d51689822fab725c3703af7c866a0c2b215
+python-slugify==8.0.4 ; python_version >= "3.9" and python_version < "4.0" \
+    --hash=sha256:276540b79961052b66b7d116620b36518847f52d5fd9e3a70164fc8c50faa6b8 \
+    --hash=sha256:59202371d1d05b54a9e7720c5e038f928f45daaffe41dd10822f3907b937c856
 python-socketio==5.11.2 ; python_version >= "3.9" and python_version < "4.0" \
     --hash=sha256:ae6a1de5c5209ca859dc574dccc8931c4be17ee003e74ce3b8d1306162bb4a37 \
     --hash=sha256:b9f22a8ff762d7a6e123d16a43ddb1a27d50f07c3c88ea999334f2f89b0ad52b
@@ -970,6 +973,9 @@ sniffio==1.3.1 ; python_version >= "3.9" and python_version < "4.0" \
 starlette==0.37.2 ; python_version >= "3.9" and python_version < "4.0" \
     --hash=sha256:6fe59f29268538e5d0d182f2791a479a0c64638e6935d1c6989e63fb2699c6ee \
     --hash=sha256:9af890290133b79fc3db55474ade20f6220a364a0402e0b556e7cd5e1e093823
+text-unidecode==1.3 ; python_version >= "3.9" and python_version < "4.0" \
+    --hash=sha256:1311f10e8b895935241623731c2ba64f4c455287888b18189350b67134a822e8 \
+    --hash=sha256:bad6603bb14d279193107714b288be206cac565dfa49aa5b105294dd5c4aab93
 tld==0.13 ; python_version >= "3.9" and python_version < "4" \
     --hash=sha256:93dde5e1c04bdf1844976eae440706379d21f4ab235b73c05d7483e074fb5629 \
     --hash=sha256:f75b2be080f767ed17c2338a339eaa4fab5792586319ca819119da252f9f3749

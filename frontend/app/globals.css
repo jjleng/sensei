@@ -5,8 +5,13 @@
 @layer base {
   :root {
     --navbar-height: 3.5rem;
-    --sidebar-width: 5rem;
-    --half-width-plus-half-sidebar: calc(50% + var(--sidebar-width) / 2);
+
+    --sidebar-width-collapsed: 5rem;
+    --sidebar-width-expanded: 16rem;
+    --sidebar-width: var(--sidebar-width-collapsed);
+
+    --half-width-plus-half-sidebar-collapsed: calc(50% + var(--sidebar-width-collapsed) / 2);
+    --half-width-plus-half-sidebar-expanded: calc(50% + var(--sidebar-width-expanded) / 2);
 
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
