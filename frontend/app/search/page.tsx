@@ -124,6 +124,7 @@ export function SearchComponent(props: { threadId: string; slug?: string }) {
       lastQueryIdRef.current = queryId;
 
       setProcessing((prev) => true);
+      setRelatedQuestions([]);
 
       // Add the new in-progress QA to the thread
       setQAThread((prev) => [
@@ -284,7 +285,7 @@ export function SearchComponent(props: { threadId: string; slug?: string }) {
                 {relatedQuestions.map((question, index) => (
                   <li
                     key={index}
-                    className="flex m-0 justify-between items-center py-3 border-t hover:text-brand cursor-pointer"
+                    className="flex m-0 justify-between items-start py-3 border-t hover:text-brand cursor-pointer"
                     onClick={() => {
                       setRelatedQuestions([]);
                       dispatch!({
