@@ -249,7 +249,11 @@ export function SearchComponent(props: { threadId: string; slug?: string }) {
 
   useEffect(() => {
     if (endOfList.current) {
-      endOfList.current.scrollIntoView({ behavior: 'smooth' });
+      const elementTop = endOfList.current.getBoundingClientRect().top;
+      window.scrollTo({
+        top: window.scrollY + elementTop - 20,
+        behavior: 'smooth',
+      });
     }
   }, [qaThread]);
 
@@ -258,6 +262,15 @@ export function SearchComponent(props: { threadId: string; slug?: string }) {
       {qaThread.map((qa, index) => (
         <React.Fragment key={qa.id}>
           {index !== 0 && <Separator />}
+          {/* Marker for the end of the QA cells */}
+          <div
+            ref={endOfList}
+            className={
+              index === qaThread.length - 1 && qa.webSources === null
+                ? 'h-0 w-full'
+                : ''
+            }
+          ></div>
           <ChatHistoryItem
             webSources={qa.webSources}
             mediums={qa.mediums}
@@ -265,11 +278,6 @@ export function SearchComponent(props: { threadId: string; slug?: string }) {
             query={qa.query}
             metadata={qa.metadata}
           />
-          {/* Marker for the end of the QA cells */}
-          <div
-            ref={endOfList}
-            className={index === qaThread.length - 1 ? 'h-0 w-full' : ''}
-          ></div>
         </React.Fragment>
       ))}
       {relatedQuestions.length > 0 && (
