@@ -1,12 +1,10 @@
 'use client';
 
-import { v4 as uuidv4 } from 'uuid';
 import React, {
   useEffect,
   useRef,
   useState,
   useContext,
-  useCallback,
   Suspense,
 } from 'react';
 import { produce } from 'immer';
@@ -40,11 +38,7 @@ interface QA {
   metadata: MetaData | null;
 }
 
-interface QueryParams {
-  [key: string]: string | undefined | null;
-}
-
-export function SearchComponent(props: { threadId: string }) {
+export function SearchComponent(props: { threadId: string; slug?: string }) {
   const router = useRouter();
 
   // Conversation thread ID
@@ -108,8 +102,11 @@ export function SearchComponent(props: { threadId: string }) {
       }
     };
 
-    fetchData();
-  }, [addToast]);
+    // Only fetch the thread if the slug is provided
+    if (props.slug) {
+      fetchData();
+    }
+  }, [addToast, props.slug]);
 
   useEffect(() => {
     // Search will be done over a websocket connection.
@@ -222,7 +219,7 @@ export function SearchComponent(props: { threadId: string }) {
         // Notify sidebar to update the list
         dispatch!({ type: 'RELOAD_SIDEBAR' });
 
-        router.push(`/search/${data.slug}`);
+        window.history.replaceState(null, '', `/search/${data.slug}`);
       });
 
       newSocket.on('disconnect', () => {
@@ -334,43 +331,23 @@ export function SearchComponent(props: { threadId: string }) {
 export default function Search() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const threadIdParam = searchParams.get('threadId');
-  // Conversation thread ID
-  // Here, we generate a new thread ID for each page refresh. If the thread ID doesn't exist, server will crate a new thread.
-  // Client could also choose to send in an existing thread ID to continue the conversation.
-  // Ideally, the thread ID should be generated on the server and sent to the client. But for now, this is not the case.
-  // TODO: update threadid generation code
-  const threadId = useRef(threadIdParam ?? uuidv4());
-
-  const updateQueryString = useCallback(
-    (newParams: QueryParams) => {
-      const currentParams = new URLSearchParams(searchParams.toString());
-
-      Object.keys(newParams).forEach((key) => {
-        if (newParams[key] !== undefined && newParams[key] !== null) {
-          currentParams.set(key, newParams[key]!);
-        } else {
-          currentParams.delete(key);
-        }
-      });
-
-      router.push(`?${currentParams.toString()}`);
-    },
-    [router, searchParams]
-  );
+  const threadIdRef = useRef(searchParams.get('threadId'));
 
   useEffect(() => {
-    if (threadIdParam) {
-      return;
+    if (!threadIdRef.current) {
+      // If threadId doesn't exist in the query string, redirect to the home page
+      router.push('/');
     }
+  }, [router]);
 
-    // Otherwise, we want to set threadId in query string
-    updateQueryString({ threadId: threadId.current });
-  }, [threadIdParam, updateQueryString]);
+  if (!threadIdRef.current) {
+    return <div></div>;
+  }
+
   return (
     // TODO: add fallback
     <Suspense fallback={<div></div>}>
-      <SearchComponent threadId={threadId.current} />
+      <SearchComponent threadId={threadIdRef.current} />
     </Suspense>
   );
 }
