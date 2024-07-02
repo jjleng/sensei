@@ -25,6 +25,11 @@ type ToggleSidebarAction = {
   payload?: never;
 };
 
+type SetSidebarOpenAction = {
+  type: 'SET_SIDEBAR_OPEN';
+  payload: boolean;
+};
+
 type SetSidebarActiveItemAction = {
   type: 'SET_SIDEBAR_ACTIVE_ITEM';
   payload: string;
@@ -38,6 +43,7 @@ type ReloadSidebarAction = {
 export type Action =
   | UpdateCurrentQueryAction
   | ToggleSidebarAction
+  | SetSidebarOpenAction
   | SetSidebarActiveItemAction
   | ReloadSidebarAction;
 
@@ -69,6 +75,11 @@ export function reducer(
       return {
         ...state,
         isSidebarOpen: !state.isSidebarOpen,
+      };
+    case 'SET_SIDEBAR_OPEN':
+      return {
+        ...state,
+        isSidebarOpen: payload,
       };
     case 'SET_SIDEBAR_ACTIVE_ITEM':
       return {

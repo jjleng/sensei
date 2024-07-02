@@ -1,15 +1,25 @@
 'use client';
 
-import ChatThreadStore from '@/ChatThreadStore';
+import { useEffect, useState } from 'react';
+import ChatThreadStore, { ChatThreadEntry } from '@/ChatThreadStore';
 import { SearchComponent } from '../page';
 
 export default function SearchPage({ params }: { params: { slug: string } }) {
-  const chatThread = ChatThreadStore.findBySlug(params.slug);
+  const [chatThread, setChatThread] = useState<
+    ChatThreadEntry | undefined | null
+  >(null);
+
+  useEffect(() => {
+    // Check if window is defined (browser environment)
+    if (typeof window !== 'undefined') {
+      const foundChatThread = ChatThreadStore.findBySlug(params.slug);
+      setChatThread(foundChatThread);
+    }
+  }, [params.slug]);
 
   if (!chatThread) {
-    return <div>Chat not found</div>;
+    return null;
   }
 
-  // Get the url parameter
   return <SearchComponent threadId={chatThread.id} slug={params.slug} />;
 }
