@@ -11,5 +11,5 @@ export default function SearchPage({ params }: { params: { slug: string } }) {
   }
 
   // Get the url parameter
-  return <SearchComponent threadId={chatThread.id} />;
+  return <SearchComponent threadId={chatThread.id} slug={params.slug} />;
 }
