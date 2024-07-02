@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from sensei_search.agents import SamuraiAgent
+from sensei_search.base_agent import NoAccessError
 from sensei_search.chat_store import ChatStore
 from sensei_search.models import ChatThread
 from sensei_search.logger import logger
@@ -66,7 +67,7 @@ async def disconnect(sid: str) -> None:
 
 
 @sio.event
-async def sensei_ask(sid: str, thread_id: str, user_query: str) -> None:
+async def sensei_ask(sid: str, thread_id: str, user_query: str, user_id: str) -> None:
     """
     Handles the 'sensei_ask' event by creating a SamuraiAgent and running it.
 
@@ -76,11 +77,17 @@ async def sensei_ask(sid: str, thread_id: str, user_query: str) -> None:
         user_query (str): The query from the user.
     """
     emitter = SocketIOEmitter(sio, sid)
-    agent = SamuraiAgent(emitter=emitter, thread_id=thread_id)
+    agent = SamuraiAgent(emitter=emitter, thread_id=thread_id, user_id=user_id)
 
     async def run_agent() -> None:
         try:
             await agent.run(user_query)
+        except NoAccessError as e:
+            await sio.emit(
+                "app_error",
+                {"message": e.message},
+                room=sid,
+            )
         except Exception as e:
             logger.exception(e)
             await sio.emit(

@@ -8,6 +8,16 @@ from typing_extensions import TypedDict
 from sensei_search.chat_store import ChatStore, ThreadMetadata
 
 
+class NoAccessError(Exception):
+    """
+    Raised when a user attempts to access a resource they do not have permission to access.
+    """
+
+    def __init__(self, message: str = "You do not have access to this resource.") -> None:
+        self.message = message
+        super().__init__(self.message)
+
+
 class EventEnum(str, Enum):
     """
     Enum for the socket.io events emitted the server.
@@ -85,10 +95,12 @@ class BaseAgent(ABC):
     chat_messages: List[Dict]
     emitter: EventEmitter
     thread_id: str
+    user_id: str
 
-    def __init__(self, thread_id: str, emitter: EventEmitter) -> None:
+    def __init__(self, user_id: str, thread_id: str, emitter: EventEmitter) -> None:
         self.chat_messages = []
         self.chat_messages_loaded = False
+        self.user_id = user_id
         self.thread_id = thread_id
         self.emitter = emitter
 

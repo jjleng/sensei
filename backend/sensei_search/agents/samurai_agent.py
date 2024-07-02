@@ -9,7 +9,7 @@ import trafilatura  # type: ignore[import]
 from aiohttp import ClientSession, ClientTimeout
 from openai import AsyncOpenAI, OpenAI
 
-from sensei_search.base_agent import BaseAgent, EnrichedQuery, EventEnum, QueryTags
+from sensei_search.base_agent import BaseAgent, EnrichedQuery, EventEnum, QueryTags, NoAccessError
 from sensei_search.chat_store import (
     ChatHistoryItem,
     ChatStore,
@@ -363,6 +363,14 @@ class SamuraiAgent(BaseAgent):
         # This can already give us a good context for generating search queries and answers
         _, thread_metadata = await asyncio.gather(self.load_chat_history(self.thread_id, ["user"]), self.get_thread_metadata())
 
+        logger.info(f"Thread metadata: {thread_metadata}")
+
+        # Check if the user has access to the thread
+        # We assume there is no easy way to guess the uuid of a user
+        if thread_metadata and thread_metadata["user_id"] != self.user_id:
+            logger.warning(f"User {self.user_id} does not have access to thread {self.thread_id}")
+            raise NoAccessError()
+
         logger.info(f"User original query: {user_message}")
 
         # Append user message to chat history
@@ -411,7 +419,7 @@ class SamuraiAgent(BaseAgent):
             # Create a new thread metadata
             thread_metadata = ThreadMetadata(
                 name=user_message[:50],
-                user_id="",
+                user_id=self.user_id,
                 created_at=datetime.now().isoformat(),
                 slug=create_slug(user_message),
                 related_questions=related_questions,

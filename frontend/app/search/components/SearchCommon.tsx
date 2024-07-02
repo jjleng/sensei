@@ -13,8 +13,8 @@ import Context from '@/context';
 import { ListPlus, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ChatThreadStore from '@/ChatThreadStore';
+import { getCurrentUser } from '@/user';
 
-// Query and Answer
 interface ChatHistoryItem {
   // uuid, unique for each query. This is used to identify the query in the thread.
   // Ideally, server should return the query ID in the response. So that client can match the query with the response.
@@ -46,8 +46,8 @@ export function SearchCommon(props: { threadId: string; slug?: string }) {
 
   // If the search is in progress
   const [processing, setProcessing] = useState(false);
-  // QA thread is a list of QA objects. Each QA object represents a query and its response along with the search results.
-  const [qaThread, setQAThread] = useState<ChatHistoryItem[]>([]);
+  // A chat thread is a list of ChatHistoryItem objects. Each ChatHistoryItem object represents a query and its response along with the search results.
+  const [chatThread, setChatThread] = useState<ChatHistoryItem[]>([]);
   // Current query is stored in the context.
   const { currentQuery, isSidebarOpen, dispatch } = useContext(Context);
 
@@ -55,7 +55,7 @@ export function SearchCommon(props: { threadId: string; slug?: string }) {
   // React might re-render the component multiple times for the same query.
   const lastQueryIdRef = useRef<string | null>(null);
 
-  // Reference to the end of the list. This is used to scroll to the end of the list when a new QA is updated and/or added.
+  // Reference to the end of the list. This is used to scroll to the end of the list when a new ChatHistoryItem is updated and/or added.
   const endOfList = useRef<HTMLDivElement>(null);
 
   // Related questions
@@ -81,7 +81,7 @@ export function SearchCommon(props: { threadId: string; slug?: string }) {
             ...rest,
           })
         );
-        setQAThread(
+        setChatThread(
           produce((draft) => {
             const existingIds = new Set(draft.map((item) => item.id));
             const uniqueResults = updatedResult.filter(
@@ -113,15 +113,15 @@ export function SearchCommon(props: { threadId: string; slug?: string }) {
 
       if (!query || !queryId) return;
 
-      // If the current query's UUID is the same as the last processed query's UUID, don't create a new QA
+      // If the current query's UUID is the same as the last processed query's UUID, don't create a new ChatHistoryItem
       if (queryId === lastQueryIdRef.current) return;
       lastQueryIdRef.current = queryId;
 
       setProcessing((prev) => true);
       setRelatedQuestions([]);
 
-      // Add the new in-progress QA to the thread
-      setQAThread((prev) => [
+      // Add the new in-progress ChatHistoryItem to the thread
+      setChatThread((prev) => [
         ...prev,
         {
           id: queryId,
@@ -146,54 +146,57 @@ export function SearchCommon(props: { threadId: string; slug?: string }) {
       });
 
       newSocket.on('connect', () => {
+        const currentUser = getCurrentUser();
         // Send the query to the server once the connection is established
-        newSocket.emit('sensei_ask', threadId.current, query);
+        newSocket.emit('sensei_ask', threadId.current, query, currentUser.id);
 
         // Reset context state, although it is not necessary
         dispatch!({ type: 'UPDATE_CURRENT_QUERY', payload: null });
       });
 
       newSocket.on('web_results', ({ data }) => {
-        setQAThread((prevQAThread) =>
-          produce(prevQAThread, (draft) => {
+        setChatThread((prevChatThread) =>
+          produce(prevChatThread, (draft) => {
             if (draft.length === 0) return;
 
-            const lastQA = draft[draft.length - 1];
-            lastQA.webSources = data;
+            const lastChatHistoryItem = draft[draft.length - 1];
+            lastChatHistoryItem.webSources = data;
           })
         );
       });
 
       newSocket.on('metadata', ({ data }) => {
-        setQAThread((prevQAThread) =>
-          produce(prevQAThread, (draft) => {
+        setChatThread((prevChatThread) =>
+          produce(prevChatThread, (draft) => {
             if (draft.length === 0) return;
 
-            const lastQA = draft[draft.length - 1];
-            lastQA.metadata = data;
+            const lastChatHistoryItem = draft[draft.length - 1];
+            lastChatHistoryItem.metadata = data;
           })
         );
       });
 
       newSocket.on('medium_results', ({ data }) => {
-        setQAThread((prevQAThread) =>
-          produce(prevQAThread, (draft) => {
+        setChatThread((prevChatThread) =>
+          produce(prevChatThread, (draft) => {
             if (draft.length === 0) return;
 
-            const lastQA = draft[draft.length - 1];
-            lastQA.mediums = data;
+            const lastChatHistoryItem = draft[draft.length - 1];
+            lastChatHistoryItem.mediums = data;
           })
         );
       });
 
       newSocket.on('answer', ({ data }) => {
-        setQAThread((prevQAThread) =>
-          produce(prevQAThread, (draft) => {
+        setChatThread((prevChatThread) =>
+          produce(prevChatThread, (draft) => {
             if (draft.length === 0) return;
 
-            const lastQA = draft[draft.length - 1];
+            const lastChatHistoryItem = draft[draft.length - 1];
             // Concatenate the answer if it is not the first response
-            lastQA.answer = lastQA.answer ? lastQA.answer + data : data;
+            lastChatHistoryItem.answer = lastChatHistoryItem.answer
+              ? lastChatHistoryItem.answer + data
+              : data;
           })
         );
       });
@@ -232,17 +235,27 @@ export function SearchCommon(props: { threadId: string; slug?: string }) {
         setProcessing(false);
         addToast('An error occurred', 'error');
         console.error('An error occurred:', error);
+
+        // Remove the last pending ChatHistoryItem
+        setChatThread((prevChatThread) =>
+          prevChatThread.filter((item) => item.webSources !== null)
+        );
       });
 
       // Server app level errors
       newSocket.on('app_error', ({ message }) => {
         setProcessing(false);
         addToast(message, 'error');
+
+        // Remove the last pending ChatHistoryItem
+        setChatThread((prevChatThread) =>
+          prevChatThread.filter((item) => item.webSources !== null)
+        );
       });
 
       socketRef.current = newSocket;
     })();
-  }, [addToast, currentQuery, qaThread, dispatch, router]);
+  }, [addToast, currentQuery, chatThread, dispatch, router]);
 
   useEffect(() => {
     if (endOfList.current) {
@@ -252,28 +265,29 @@ export function SearchCommon(props: { threadId: string; slug?: string }) {
         behavior: 'smooth',
       });
     }
-  }, [qaThread]);
+  }, [chatThread]);
 
   return (
     <>
-      {qaThread.map((qa, index) => (
-        <React.Fragment key={qa.id}>
+      {chatThread.map((chatHistoryItem, index) => (
+        <React.Fragment key={chatHistoryItem.id}>
           {index !== 0 && <Separator />}
-          {/* Marker for the end of the QA cells */}
+          {/* Marker for the end of the ChatHistoryItem cells */}
           <div
             ref={endOfList}
             className={
-              index === qaThread.length - 1 && qa.webSources === null
+              index === chatThread.length - 1 &&
+              chatHistoryItem.webSources === null
                 ? 'h-0 w-full'
                 : ''
             }
           ></div>
           <ChatHistoryItem
-            webSources={qa.webSources}
-            mediums={qa.mediums}
-            answer={qa.answer}
-            query={qa.query}
-            metadata={qa.metadata}
+            webSources={chatHistoryItem.webSources}
+            mediums={chatHistoryItem.mediums}
+            answer={chatHistoryItem.answer}
+            query={chatHistoryItem.query}
+            metadata={chatHistoryItem.metadata}
           />
         </React.Fragment>
       ))}
