@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import ChatThreadStore, { ChatThreadEntry } from '@/ChatThreadStore';
-import { SearchComponent } from '../page';
+import { SearchCommon } from '@/search/components/SearchCommon';
 
 export default function SearchPage({ params }: { params: { slug: string } }) {
   const [chatThread, setChatThread] = useState<
@@ -21,5 +21,5 @@ export default function SearchPage({ params }: { params: { slug: string } }) {
     return null;
   }
 
-  return <SearchComponent threadId={chatThread.id} slug={params.slug} />;
+  return <SearchCommon threadId={chatThread.id} slug={params.slug} />;
 }
