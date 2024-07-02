@@ -220,6 +220,7 @@ export function SearchComponent(props: { threadId: string }) {
         });
 
         // Notify sidebar to update the list
+        dispatch!({ type: 'RELOAD_SIDEBAR' });
 
         router.push(`/search/${data.slug}`);
       });
