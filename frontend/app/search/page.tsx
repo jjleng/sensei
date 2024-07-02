@@ -220,6 +220,9 @@ export function SearchComponent(props: { threadId: string; slug?: string }) {
         // Notify sidebar to update the list
         dispatch!({ type: 'RELOAD_SIDEBAR' });
 
+        // Set the active sidebar item
+        dispatch!({ type: 'SET_SIDEBAR_ACTIVE_ITEM', payload: data.slug });
+
         window.history.replaceState(null, '', `/search/${data.slug}`);
       });
 

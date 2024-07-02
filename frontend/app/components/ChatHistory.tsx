@@ -5,10 +5,12 @@ import React, {
   useCallback,
   useContext,
 } from 'react';
+import { useRouter } from 'next/navigation';
 import { produce } from 'immer';
 import moment from 'moment';
 import ChatThreadStore, { ChatThreadEntry } from '@/ChatThreadStore';
 import context from '@/context';
+import { cn } from '@/lib/utils';
 
 interface GroupedThreads {
   date: string; // This will store local date strings for display
@@ -16,12 +18,20 @@ interface GroupedThreads {
 }
 
 const ChatThreadList: React.FC = () => {
-  const { reloadSidebarCounter } = useContext(context);
+  const { reloadSidebarCounter, sidebarActiveItem, dispatch } =
+    useContext(context);
   const [groupedThreads, setGroupedThreads] = useState<GroupedThreads[]>([]);
   const [page, setPage] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const isFetching = useRef(false);
   const hasMoreData = useRef(true);
+  const router = useRouter();
+
+  let activeItemSlug = sidebarActiveItem;
+  if (!activeItemSlug) {
+    // First item in the list
+    activeItemSlug = ChatThreadStore.fetchEntries(0)[0]?.slug || null;
+  }
 
   const groupByDate = useCallback(
     (threads: ChatThreadEntry[]): GroupedThreads[] => {
@@ -153,15 +163,33 @@ const ChatThreadList: React.FC = () => {
   return (
     <div
       ref={containerRef}
-      className="h-full overflow-y-auto overflow-x-hidden px-4 w-full"
+      className="h-full overflow-y-auto overflow-x-hidden px-0 w-full"
     >
       {groupedThreads.map((group) => (
         <div key={group.date} className="mb-4">
-          <div className="sticky top-0 text-gray-400 text-sm py-1 bg-accent dark:bg-accent">
+          <div className="sticky top-0 text-gray-400 text-sm py-1 ml-2 bg-accent dark:bg-accent">
             {group.date}
           </div>
           {group.threads.map((thread) => (
-            <div key={thread.id} className="mb-2">
+            <div
+              onClick={() => {
+                if (thread.slug === activeItemSlug) return;
+
+                dispatch?.({
+                  type: 'SET_SIDEBAR_ACTIVE_ITEM',
+                  payload: thread.slug,
+                });
+                // Also jump to the thread page
+                router.push(`/search/${thread.slug}`);
+              }}
+              key={thread.id}
+              className={cn(
+                'p-2 hover:bg-background dark:hover:bg-background/50  transition-colors duration-200 ease-in-out',
+                thread.slug === activeItemSlug
+                  ? 'bg-background dark:bg-background/50'
+                  : 'cursor-pointer'
+              )}
+            >
               <div className="truncate">{thread.displayName}</div>
             </div>
           ))}

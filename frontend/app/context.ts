@@ -10,6 +10,7 @@ export interface CurrentQuery {
 interface ContextType {
   currentQuery: CurrentQuery;
   isSidebarOpen: boolean;
+  sidebarActiveItem: string | null;
   reloadSidebarCounter: number;
   dispatch?: React.Dispatch<Action>;
 }
@@ -24,6 +25,11 @@ type ToggleSidebarAction = {
   payload?: never;
 };
 
+type SetSidebarActiveItemAction = {
+  type: 'SET_SIDEBAR_ACTIVE_ITEM';
+  payload: string;
+};
+
 type ReloadSidebarAction = {
   type: 'RELOAD_SIDEBAR';
   payload?: never;
@@ -32,11 +38,13 @@ type ReloadSidebarAction = {
 export type Action =
   | UpdateCurrentQueryAction
   | ToggleSidebarAction
+  | SetSidebarActiveItemAction
   | ReloadSidebarAction;
 
 export default createContext<ContextType>({
   currentQuery: { query: null, queryId: null },
   isSidebarOpen: false,
+  sidebarActiveItem: null,
   reloadSidebarCounter: 0,
 });
 
@@ -61,6 +69,11 @@ export function reducer(
       return {
         ...state,
         isSidebarOpen: !state.isSidebarOpen,
+      };
+    case 'SET_SIDEBAR_ACTIVE_ITEM':
+      return {
+        ...state,
+        sidebarActiveItem: payload,
       };
     case 'RELOAD_SIDEBAR':
       return {
