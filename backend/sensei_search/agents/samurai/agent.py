@@ -1,35 +1,27 @@
 import asyncio
 import os
 import re
-import uuid
 from datetime import datetime
-from typing import List, Optional, Union, Any
+from typing import List, Optional, Any
 
-import trafilatura  # type: ignore[import]
-from aiohttp import ClientSession, ClientTimeout
 from openai import AsyncOpenAI, OpenAI
 
-from sensei_search.base_agent import BaseAgent, EnrichedQuery, EventEnum, QueryTags, NoAccessError
+from sensei_search.base_agent import BaseAgent, EnrichedQuery, QueryTags, NoAccessError
 from sensei_search.chat_store import (
-    ChatHistoryItem,
-    ChatStore,
     ThreadMetadata,
 )
 from sensei_search.models import (
-    MediumImage,
-    MediumVideo,
     MetaData,
-    WebResult,
 )
 from sensei_search.env import load_envs
 from sensei_search.logger import logger
-from sensei_search.prompts import (
+from sensei_search.agents.samurai.prompts import (
     answer_prompt,
     classification_prompt,
     related_questions_prompt,
     search_prompt,
 )
-from sensei_search.tools import Category, GeneralResult
+from sensei_search.tools import Category
 from sensei_search.tools import Input as SearxNGInput
 from sensei_search.tools import TopResults, searxng_search_results_json
 from sensei_search.utils import create_slug
@@ -76,70 +68,6 @@ class SamuraiAgent(BaseAgent):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-
-    async def emit_thread_metadata(self, metadata: ThreadMetadata) -> None:
-        """
-        Send the thread metadata to the frontend
-        """
-        await self.emitter.emit(EventEnum.thread_metadata.value, {"data": {
-            "created_at": metadata['created_at'],
-            "slug": metadata['slug'],
-            "name": metadata['name'],
-        }})
-
-    async def emit_metadata(self, metadata: MetaData) -> None:
-        """
-        Send the metadata to the frontend.
-        """
-        await self.emitter.emit(EventEnum.metadata.value, {"data": metadata})
-
-    async def emit_web_results(self, results: List[GeneralResult]) -> None:
-        """
-        Send the search results to the frontend.
-        """
-        filtered_results = [
-            {"url": res["url"], "title": res["title"], "content": res["content"]}
-            for res in results
-        ]
-
-        # Emit the search results
-        await self.emitter.emit(EventEnum.web_results.value, {"data": filtered_results})
-
-    async def emit_medium_results(self, results: TopResults) -> None:
-        """
-        Send the medium results to the frontend.
-        """
-        images = results["images"]
-        videos = results["videos"]
-
-        filtered_results = []
-
-        for image in images:
-            filtered_results.append(
-                {"url": image["url"], "image": image["img_src"], "medium": "image"}
-            )
-
-        for video in videos:
-            filtered_results.append({"url": video["url"], "medium": "video"})
-
-        # Emit the search results
-        await self.emitter.emit(
-            EventEnum.medium_results.value, {"data": filtered_results}
-        )
-
-    async def emit_answer(self, answer: str) -> None:
-        """
-        Send the LLM answer to the frontend.
-        """
-        await self.emitter.emit(EventEnum.answer.value, {"data": answer})
-
-    async def emit_related_questions(self, related_questions: List[str]) -> None:
-        """
-        Send the related questions to the frontend.
-        """
-        await self.emitter.emit(
-            EventEnum.related_questions.value, {"data": related_questions}
-        )
 
     async def process_user_query(self) -> EnrichedQuery:
         """
@@ -218,27 +146,6 @@ class SamuraiAgent(BaseAgent):
         logger.info(enriched_query)
 
         return enriched_query
-
-    async def fetch_web_pages(self, results: List[GeneralResult]) -> List[str]:
-        """
-        Fetch the web page contents for the search results.
-        """
-
-        async def fetch_page(url: str, session: ClientSession) -> str:
-            try:
-                async with session.get(url) as response:
-                    return await response.text()
-            except asyncio.TimeoutError:
-                logger.warning(f"Timeout occurred when fetching {url}")
-            except Exception as e:
-                logger.exception(f"Error fetching {url}: {e}")
-            return ""
-
-        timeout = ClientTimeout(total=FETCH_WEBPAGE_TIMEOUT)
-        async with ClientSession(timeout=timeout) as session:
-            tasks = [fetch_page(result["url"], session) for result in results]
-            html_web_pages = await asyncio.gather(*tasks)
-            return [trafilatura.extract(page) for page in html_web_pages]
 
     async def gen_related_questions(self, web_pages: List[str]) -> List[str]:
         search_results = "\n\n".join(
@@ -428,37 +335,9 @@ class SamuraiAgent(BaseAgent):
             await asyncio.gather(self.emit_thread_metadata(thread_metadata), self.upsert_thread_metadata(thread_metadata))
 
         # Save the chat history
-        chat_store = ChatStore()
-
-        mediums: List[Union[MediumImage, MediumVideo]] = []
-
-        if medium_results:
-            for image in medium_results["images"]:
-                mediums.append(
-                    {"url": image["url"], "image": image["img_src"], "medium": "image"}
-                )
-
-            for video in medium_results["videos"]:
-                mediums.append({"url": video["url"], "medium": "video"})
-
-        web_results: List[WebResult] = [
-            {"url": res["url"], "title": res["title"], "content": res["content"]}
-            for res in general_results
-        ]
-
         metadata = MetaData(has_math=False)
 
         if tags is not None and tags["has_math"]:
             metadata["has_math"] = True
 
-        chat_history: ChatHistoryItem = {
-            "id": str(uuid.uuid4()),
-            "thread_id": self.thread_id,
-            "mediums": mediums,
-            "web_results": web_results,
-            "query": user_message,
-            "answer": answer,
-            # We use the metadata to give the client extra info if they need to load the Math plugin
-            "metadata": metadata,
-        }
-        await chat_store.save_chat_history(self.thread_id, chat_history)
+        await self.save_chat_history(user_message, answer, medium_results, general_results, metadata)
