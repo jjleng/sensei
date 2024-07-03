@@ -1,12 +1,32 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
+import asyncio
+import uuid
 from enum import Enum
-from typing import Dict, List, Literal, Optional, Protocol
+from typing import Dict, List, Literal, Optional, Protocol, Union
 
 from pydantic import BaseModel, Field
 from typing_extensions import TypedDict
+import trafilatura  # type: ignore[import]
+from aiohttp import ClientSession, ClientTimeout
 
-from sensei_search.chat_store import ChatStore, ThreadMetadata
+from sensei_search.chat_store import ChatStore, ThreadMetadata, ChatHistoryItem
+from sensei_search.models import (
+    MetaData,
+)
+from sensei_search.tools import TopResults, GeneralResult
 
+from sensei_search.logger import logger
+from sensei_search.models import (
+    MediumImage,
+    MediumVideo,
+    MetaData,
+    WebResult,
+)
+
+
+FETCH_WEBPAGE_TIMEOUT = 3
 
 class NoAccessError(Exception):
     """
@@ -103,6 +123,125 @@ class BaseAgent(ABC):
         self.user_id = user_id
         self.thread_id = thread_id
         self.emitter = emitter
+
+    async def emit_thread_metadata(self, metadata: ThreadMetadata) -> None:
+        """
+        Send the thread metadata to the frontend
+        """
+        await self.emitter.emit(EventEnum.thread_metadata.value, {"data": {
+            "created_at": metadata['created_at'],
+            "slug": metadata['slug'],
+            "name": metadata['name'],
+        }})
+
+    async def emit_metadata(self, metadata: MetaData) -> None:
+        """
+        Send the metadata to the frontend.
+        """
+        await self.emitter.emit(EventEnum.metadata.value, {"data": metadata})
+
+    async def emit_web_results(self, results: List[GeneralResult]) -> None:
+        """
+        Send the search results to the frontend.
+        """
+        filtered_results = [
+            {"url": res["url"], "title": res["title"], "content": res["content"]}
+            for res in results
+        ]
+
+        # Emit the search results
+        await self.emitter.emit(EventEnum.web_results.value, {"data": filtered_results})
+
+    async def emit_medium_results(self, results: TopResults) -> None:
+        """
+        Send the medium results to the frontend.
+        """
+        images = results["images"]
+        videos = results["videos"]
+
+        filtered_results = []
+
+        for image in images:
+            filtered_results.append(
+                {"url": image["url"], "image": image["img_src"], "medium": "image"}
+            )
+
+        for video in videos:
+            filtered_results.append({"url": video["url"], "medium": "video"})
+
+        # Emit the search results
+        await self.emitter.emit(
+            EventEnum.medium_results.value, {"data": filtered_results}
+        )
+
+    async def emit_answer(self, answer: str) -> None:
+        """
+        Send the LLM answer to the frontend.
+        """
+        await self.emitter.emit(EventEnum.answer.value, {"data": answer})
+
+    async def emit_related_questions(self, related_questions: List[str]) -> None:
+        """
+        Send the related questions to the frontend.
+        """
+        await self.emitter.emit(
+            EventEnum.related_questions.value, {"data": related_questions}
+        )
+
+    async def fetch_web_pages(self, results: List[GeneralResult]) -> List[str]:
+        """
+        Fetch the web page contents for the search results.
+        """
+
+        async def fetch_page(url: str, session: ClientSession) -> str:
+            try:
+                async with session.get(url) as response:
+                    return await response.text()
+            except asyncio.TimeoutError:
+                logger.warning(f"Timeout occurred when fetching {url}")
+            except Exception as e:
+                logger.exception(f"Error fetching {url}: {e}")
+            return ""
+
+        timeout = ClientTimeout(total=FETCH_WEBPAGE_TIMEOUT)
+        async with ClientSession(timeout=timeout) as session:
+            tasks = [fetch_page(result["url"], session) for result in results]
+            html_web_pages = await asyncio.gather(*tasks)
+            return [trafilatura.extract(page) for page in html_web_pages]
+
+    async def save_chat_history(self, user_message: str, answer: str, medium_results: TopResults, general_results: List[GeneralResult], metadata: MetaData ) -> None:
+        """
+        Save the chat history to Redis.
+        """
+        chat_store = ChatStore()
+
+        mediums: List[Union[MediumImage, MediumVideo]] = []
+
+        if medium_results:
+            for image in medium_results["images"]:
+                mediums.append(
+                    {"url": image["url"], "image": image["img_src"], "medium": "image"}
+                )
+
+            for video in medium_results["videos"]:
+                mediums.append({"url": video["url"], "medium": "video"})
+
+        web_results: List[WebResult] = [
+            {"url": res["url"], "title": res["title"], "content": res["content"]}
+            for res in general_results
+        ]
+
+        chat_history: ChatHistoryItem = {
+            "id": str(uuid.uuid4()),
+            "thread_id": self.thread_id,
+            "mediums": mediums,
+            "web_results": web_results,
+            "query": user_message,
+            "answer": answer,
+            # We use the metadata to give the client extra info if they need to load the Math plugin
+            "metadata": metadata,
+        }
+        await chat_store.save_chat_history(self.thread_id, chat_history)
 
     async def load_chat_history(
         self, thread_id: str, roles: Optional[List[Literal["user", "assistant"]]] = None

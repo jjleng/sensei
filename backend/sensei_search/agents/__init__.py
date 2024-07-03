@@ -1,3 +1,3 @@
-from .samurai_agent import *
+from .samurai import *
 
 __all__ = ["SamuraiAgent"]
