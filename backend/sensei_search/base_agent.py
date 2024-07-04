@@ -28,12 +28,15 @@ from sensei_search.models import (
 
 FETCH_WEBPAGE_TIMEOUT = 3
 
+
 class NoAccessError(Exception):
     """
     Raised when a user attempts to access a resource they do not have permission to access.
     """
 
-    def __init__(self, message: str = "You do not have access to this resource.") -> None:
+    def __init__(
+        self, message: str = "You do not have access to this resource."
+    ) -> None:
         self.message = message
         super().__init__(self.message)
 
@@ -128,15 +131,20 @@ class BaseAgent(ABC):
         """
         Send the thread metadata to the frontend
         """
-        await self.emitter.emit(EventEnum.thread_metadata.value, {"data": {
-            "created_at": metadata['created_at'],
-            "slug": metadata['slug'],
-            "name": metadata['name'],
-        }})
+        await self.emitter.emit(
+            EventEnum.thread_metadata.value,
+            {
+                "data": {
+                    "created_at": metadata["created_at"],
+                    "slug": metadata["slug"],
+                    "name": metadata["name"],
+                }
+            },
+        )
 
     async def emit_metadata(self, metadata: MetaData) -> None:
         """
-        Send the metadata to the frontend.
+        Send the chat history item metadata to the frontend.
         """
         await self.emitter.emit(EventEnum.metadata.value, {"data": metadata})
 
@@ -209,7 +217,14 @@ class BaseAgent(ABC):
             html_web_pages = await asyncio.gather(*tasks)
             return [trafilatura.extract(page) for page in html_web_pages]
 
-    async def save_chat_history(self, user_message: str, answer: str, medium_results: TopResults, general_results: List[GeneralResult], metadata: MetaData ) -> None:
+    async def save_chat_history(
+        self,
+        user_message: str,
+        answer: str,
+        medium_results: TopResults,
+        general_results: List[GeneralResult],
+        metadata: MetaData,
+    ) -> None:
         """
         Save the chat history to Redis.
         """

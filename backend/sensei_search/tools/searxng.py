@@ -81,7 +81,13 @@ class Input(BaseModel):
     )
     categories: List[Category] = Field(
         [],
-        description="By default, the search will return text results for you to get your answer. You can also specify images, videos, or maps to help users further with extra information. Specify this parameter when only needed.",
+        description=(
+            "The search functionality categorizes results into three types: 'general', 'images', and 'videos'. "
+            "The 'general' category returns text and links, 'images' returns image results, and 'videos' returns video content. "
+            "Specify 'images' and 'videos' alongside 'general' to enrich the search results with additional visual content "
+            'when it adds value. For instance, for a query like "Joe Biden Biography", specifying all three categories '
+            "['general', 'images', 'videos'] would be beneficial."
+        ),
     )
 
 
