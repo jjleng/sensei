@@ -2,6 +2,7 @@ from typing import List, Optional, Union
 
 from typing_extensions import TypedDict
 
+
 class WebResult(TypedDict):
     url: str
     title: str

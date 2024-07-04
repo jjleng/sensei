@@ -203,7 +203,7 @@ class SamuraiAgent(BaseAgent):
         )
 
         client = OpenAI(
-            base_url=os.environ["MD_MODLE_URL"], api_key=os.environ["MD_MODEL_API_KEY"]
+            base_url=os.environ["MD_MODEL_URL"], api_key=os.environ["MD_MODEL_API_KEY"]
         )
 
         response = client.chat.completions.create(
@@ -268,14 +268,18 @@ class SamuraiAgent(BaseAgent):
         logger.info("samurai_agent runs")
         # To save LLM tokens, we only load user's queries from the chat history
         # This can already give us a good context for generating search queries and answers
-        _, thread_metadata = await asyncio.gather(self.load_chat_history(self.thread_id, ["user"]), self.get_thread_metadata())
+        _, thread_metadata = await asyncio.gather(
+            self.load_chat_history(self.thread_id, ["user"]), self.get_thread_metadata()
+        )
 
         logger.info(f"Thread metadata: {thread_metadata}")
 
         # Check if the user has access to the thread
         # We assume there is no easy way to guess the uuid of a user
         if thread_metadata and thread_metadata["user_id"] != self.user_id:
-            logger.warning(f"User {self.user_id} does not have access to thread {self.thread_id}")
+            logger.warning(
+                f"User {self.user_id} does not have access to thread {self.thread_id}"
+            )
             raise NoAccessError()
 
         logger.info(f"User original query: {user_message}")
@@ -307,12 +311,13 @@ class SamuraiAgent(BaseAgent):
             # Sending search results to the client ASAP
             self.emit_web_results(general_results),
             # Fetch web page contents for llm to use as context
-            self.fetch_web_pages(general_results[:5]),)
+            self.fetch_web_pages(general_results[:5]),
+        )
 
         answer, medium_results, related_questions = await asyncio.gather(
             self.gen_answer(web_pages),
             self.process_medium(query, tags),
-            self.gen_related_questions(web_pages)
+            self.gen_related_questions(web_pages),
         )
 
         logger.info("Answer generated successfully.")
@@ -332,7 +337,10 @@ class SamuraiAgent(BaseAgent):
                 related_questions=related_questions,
             )
             # We send the thread metadata to the client for it save it in the local storage
-            await asyncio.gather(self.emit_thread_metadata(thread_metadata), self.upsert_thread_metadata(thread_metadata))
+            await asyncio.gather(
+                self.emit_thread_metadata(thread_metadata),
+                self.upsert_thread_metadata(thread_metadata),
+            )
 
         # Save the chat history
         metadata = MetaData(has_math=False)
@@ -340,4 +348,6 @@ class SamuraiAgent(BaseAgent):
         if tags is not None and tags["has_math"]:
             metadata["has_math"] = True
 
-        await self.save_chat_history(user_message, answer, medium_results, general_results, metadata)
+        await self.save_chat_history(
+            user_message, answer, medium_results, general_results, metadata
+        )

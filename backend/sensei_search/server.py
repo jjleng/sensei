@@ -8,7 +8,7 @@ import socketio  # type: ignore[import-untyped]
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from sensei_search.agents import SamuraiAgent
+from sensei_search.agents import ShogunAgent
 from sensei_search.base_agent import NoAccessError
 from sensei_search.chat_store import ChatStore
 from sensei_search.models import ChatThread
@@ -77,7 +77,7 @@ async def sensei_ask(sid: str, thread_id: str, user_query: str, user_id: str) ->
         user_query (str): The query from the user.
     """
     emitter = SocketIOEmitter(sio, sid)
-    agent = SamuraiAgent(emitter=emitter, thread_id=thread_id, user_id=user_id)
+    agent = ShogunAgent(emitter=emitter, thread_id=thread_id, user_id=user_id)
 
     async def run_agent() -> None:
         try:
@@ -110,10 +110,15 @@ async def get_thread(thread_id: str) -> ChatThread:
     logger.info(f"Fetching thread {thread_id}")
     chat_store = ChatStore()
 
-    chat_history, thread_metadata = await asyncio.gather(chat_store.get_chat_history(thread_id), chat_store.get_thread_metadata(thread_id))
+    chat_history, thread_metadata = await asyncio.gather(
+        chat_store.get_chat_history(thread_id),
+        chat_store.get_thread_metadata(thread_id),
+    )
     # This won't happen in practice. If it does, clients will receive an error message.
     assert thread_metadata is not None
-    return ChatThread(thread_id=thread_id, chat_history=chat_history, metadata=thread_metadata)
+    return ChatThread(
+        thread_id=thread_id, chat_history=chat_history, metadata=thread_metadata
+    )
 
 
 @app.get("/health")

@@ -4,9 +4,13 @@ import re
 from datetime import datetime
 from typing import List, Optional, Any
 
-from openai import AsyncOpenAI, OpenAI
+from openai import AsyncOpenAI
+import json
+from openai.types.chat import ChatCompletionMessageParam, ChatCompletionMessageToolCall
+from openai.types.chat.chat_completion_chunk import ChoiceDeltaToolCall
+from openai.types.chat.chat_completion_message_tool_call import Function
 
-from sensei_search.base_agent import BaseAgent, EnrichedQuery, QueryTags, NoAccessError
+from sensei_search.base_agent import BaseAgent, NoAccessError
 from sensei_search.chat_store import (
     ThreadMetadata,
 )
@@ -15,16 +19,14 @@ from sensei_search.models import (
 )
 from sensei_search.env import load_envs
 from sensei_search.logger import logger
-from sensei_search.agents.samurai.prompts import (
+from sensei_search.agents.shogun.prompts import (
     answer_prompt,
-    classification_prompt,
-    related_questions_prompt,
-    search_prompt,
+    general_prompt,
 )
 from sensei_search.tools import Category
 from sensei_search.tools import Input as SearxNGInput
 from sensei_search.tools import TopResults, searxng_search_results_json
-from sensei_search.utils import create_slug
+from sensei_search.utils import create_slug, to_openapi_spec
 
 load_envs()
 
@@ -37,181 +39,66 @@ async def noop() -> None:
 
 class ShogunAgent(BaseAgent):
     """
-    This agent is designed to be an advanced agent for searching and researching tasks. But still not a general agent like ChatGPT.
+    The goal of the Shogun is to be a high performance agent that can produce high-quality answers with faster speed.
+    Shogun aim to achieve the goals with all tools available, not just the open source ones.
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
-
-    async def process_user_query(self) -> EnrichedQuery:
-        """
-        Generate a search query based on the chat history and the user's current query,
-        and classify the query to determine its nature and required handling.
-        """
-        client = AsyncOpenAI(
-            base_url=os.environ["SM_MODLE_URL"], api_key=os.environ["SM_MODEL_API_KEY"]
-        )
-
-        # We only load user's queries from the chat history to save LLM tokens
-        chat_history = self.chat_history_to_string(["user"])
-        user_current_query = self.chat_messages[-1]["content"]
-
-        materialized_search_prompt = search_prompt.format(
-            chat_history=chat_history,
-            user_current_query=user_current_query,
-            current_date=datetime.now().isoformat(),
-        )
-
-        materialized_classify_prompt = classification_prompt.format(
-            chat_history=chat_history,
-            user_current_query=user_current_query,
-        )
-
-        search_response, classification_response = await asyncio.gather(
-            client.chat.completions.create(
-                model=os.environ["SM_MODEL"],
-                messages=[{"role": "user", "content": materialized_search_prompt}],
-                temperature=0.0,
-                max_tokens=500,
-            ),
-            client.chat.completions.create(
-                model=os.environ["SM_MODEL"],
-                messages=[{"role": "user", "content": materialized_classify_prompt}],
-                temperature=0.0,
-                max_tokens=500,
-            ),
-        )
-
-        classify_response = classification_response.choices[0].message.content
-
-        if not classify_response:
-            raise ValueError("Classification response is empty.")
-
-        classify_response = classify_response.strip('"').strip("'")
-
-        logger.info(classify_response)
-
-        # need_search, need_image, need_video, violation, has_math
-        tags_dict = {}
-        for tag in classify_response.split(","):
-            try:
-                key, value = tag.strip().split(":")
-                tags_dict[key] = value
-            except ValueError:
-                logger.warning(f"Skipping ill-formatted tag: {tag}")
-
-        query_tags = QueryTags(
-            needs_search=tags_dict.get("SEARCH_NEEDED", "YES").strip() == "YES",
-            needs_image=tags_dict.get("SEARCH_IMAGE", "NO").strip() == "YES",
-            needs_video=tags_dict.get("SEARCH_VIDEO", "NO").strip() == "YES",
-            content_violation=tags_dict.get("CONTENT_VIOLATION", "NO").strip() == "YES",
-            has_math=tags_dict.get("MATH", "NO").strip() == "YES",
-        )
-
-        query = search_response.choices[0].message.content
-
-        if not query:
-            raise ValueError("Search query response is empty.")
-
-        query = query.strip('"').strip("'")
-
-        enriched_query = EnrichedQuery(search_query=query, tags=query_tags)
-
-        logger.info(enriched_query)
-
-        return enriched_query
-
-
-    async def gen_related_questions(self, web_pages: List[str]) -> List[str]:
-        search_results = "\n\n".join(
-            [f"Document: {i + 1}\n{page}" for i, page in enumerate(web_pages)]
-        )
-        # We are capping the search results at 5000 words, so that we can use the small model
-        search_results = search_results[:5000]
-
-        user_current_query = self.chat_messages[-1]["content"]
-        prompt = related_questions_prompt.format(
-            user_current_query=user_current_query, search_results=search_results
-        )
-
-        try:
-
-            client = OpenAI(
-                base_url=os.environ["SM_MODLE_URL"],
-                api_key=os.environ["SM_MODEL_API_KEY"],
-            )
-            response = (
-                client.chat.completions.create(
-                    model=os.environ["SM_MODEL"],
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.0,
-                    max_tokens=500,
-                    stream=False,
-                ),
-            )
-
-            return [
-                re.sub(r"^\s*\d+\.\s*", "", item)
-                for item in (response[0].choices[0].message.content or "").split("\n")
-            ]
-        except Exception as e:
-            logger.exception(f"Error generating related questions: {e}")
-            return []
-
-    async def gen_answer(self, web_pages: List[str]) -> str:
-        """
-        Generate an answer based on the search results and the user's query.
-        """
+    async def gen_answer_with_search_context(
+        self, tool_use_id: str, search_results: TopResults
+    ) -> str:
         final_answer_parts = []
 
-        # We only load user's queries from the chat history to save LLM tokens
-        chat_history = self.chat_history_to_string(["user"])
-
-        search_results = "\n\n".join(
-            [f"Document: {i + 1}\n{page}" for i, page in enumerate(web_pages)]
+        client = AsyncOpenAI(
+            base_url=os.environ["MD_MODEL_URL"], api_key=os.environ["MD_MODEL_API_KEY"]
         )
 
-        system_prompt = answer_prompt.format(
-            chat_history=chat_history,
-            search_results=search_results,
-            current_date=datetime.now().isoformat(),
+        system_prompt = answer_prompt.format(current_date=datetime.now().isoformat())
+
+        messages: List[ChatCompletionMessageParam] = [
+            {"role": "system", "content": system_prompt}
+        ]
+        for message in self.chat_messages:
+            messages.append({"role": message["role"], "content": message["content"]})
+
+        # Construct the search context as this format:
+        # [1]
+        # Page 1 url
+        # Page 1 title
+        # Page 1 content
+        search_context = []
+        for i, result in enumerate(search_results["general"]):
+            search_context.append(
+                f"[{i+1}]\n{result['url']}\n{result['title']}\n{result['content']}"
+            )
+
+        # We need to append the search results to the chat history
+        messages.append(
+            {
+                "role": "user",
+                "content": json.dumps(
+                    [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": tool_use_id,
+                            "content": "\n\n".join(search_context),
+                        }
+                    ]
+                ),
+            }
         )
 
-        client = OpenAI(
-            base_url=os.environ["MD_MODLE_URL"], api_key=os.environ["MD_MODEL_API_KEY"]
-        )
-
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model=os.environ["MD_MODEL"],
-            messages=[
-                {
-                    "role": "system",
-                    "content": system_prompt,
-                },
-                {
-                    "role": "user",
-                    "content": f'{self.chat_messages[-1]["content"]}. (You MUST follow `Query type specifications` and `Formatting Instructions` to write and format your answer.)',
-                },
-                {
-                    "role": "system",
-                    "content": (
-                        "Carefully perform the following instructions in order. "
-                        "1. Ensure that the user's query does not violate the Safety Preamble. If it does, reject the request and provide no response. "
-                        "2. Retrieve relevant documents related to the user's query. "
-                        "3. Determine which of the retrieved documents contain facts pertinent to crafting an informative response. "
-                        "4. Construct your answer based on the information extracted from the relevant documents. Avoid directly copying any grounding markup or references, such as [1][2], from the source material. Always attribute the information by citing the corresponding document(s) using the format `[1][2]` while composing the answer. NEVER include a References or Sources section at the end of your answer. "
-                        "5. When relevant documents are available, prioritize the information obtained from the search results over the knowledge from your pre-training data."
-                        "Now answer user's latest query using the same language the user used: "
-                    ),
-                },
-            ],
+            messages=messages,
             temperature=0.0,
             max_tokens=2500,
             stream=True,
         )
 
-        for chunk in response:
+        async for chunk in response:
             if chunk.choices[0].delta.content:
                 final_answer_parts.append(chunk.choices[0].delta.content)
                 # Send the answer to the user ASAP
@@ -219,39 +106,58 @@ class ShogunAgent(BaseAgent):
 
         return "".join(final_answer_parts)
 
-    async def process_medium(self, query: str, tags: Optional[QueryTags]) -> TopResults:
-        categories = []
+    def concat_choice_delta_tool_calls(
+        self, tool_calls_chunks: List[ChoiceDeltaToolCall]
+    ) -> List[ChatCompletionMessageToolCall]:
+        full_calls = {}
 
-        if tags is not None:
-            if tags["needs_image"]:
-                categories.append(Category.images)
-            if tags["needs_video"]:
-                categories.append(Category.videos)
+        for call in tool_calls_chunks:
+            index = call.index
+            if index not in full_calls:
+                full_calls[index] = {"id": "", "name": "", "arguments": ""}
 
-        if categories:
-            search_input = SearxNGInput(query=query, categories=categories)
-            # Search for images and videos
-            medium_results = await searxng_search_results_json(search_input)
-        else:
-            medium_results = TopResults(general=[], images=[], videos=[])
-        await self.emit_medium_results(medium_results)
-        return medium_results
+            if call.id:
+                full_calls[index]["id"] = call.id
+            if call.function and call.function.name:
+                full_calls[index]["name"] += call.function.name
+            if call.function and call.function.arguments:
+                full_calls[index]["arguments"] += call.function.arguments
+
+        # Convert the dictionary to a list of ChatCompletionMessageToolCall
+        result = []
+        for func_call in full_calls.values():
+            result.append(
+                ChatCompletionMessageToolCall(
+                    id=func_call["id"],
+                    function=Function(
+                        name=func_call["name"], arguments=func_call["arguments"]
+                    ),
+                    type="function",
+                )
+            )
+
+        return result
 
     async def run(self, user_message: str) -> None:
         """
         Entry point for the agent.
         """
-        logger.info("samurai_agent runs")
+        logger.info("shogun_agent runs")
         # To save LLM tokens, we only load user's queries from the chat history
         # This can already give us a good context for generating search queries and answers
-        _, thread_metadata = await asyncio.gather(self.load_chat_history(self.thread_id, ["user"]), self.get_thread_metadata())
+        _, thread_metadata = await asyncio.gather(
+            self.load_chat_history(self.thread_id, ["user", "assistant"]),
+            self.get_thread_metadata(),
+        )
 
         logger.info(f"Thread metadata: {thread_metadata}")
 
         # Check if the user has access to the thread
         # We assume there is no easy way to guess the uuid of a user
         if thread_metadata and thread_metadata["user_id"] != self.user_id:
-            logger.warning(f"User {self.user_id} does not have access to thread {self.thread_id}")
+            logger.warning(
+                f"User {self.user_id} does not have access to thread {self.thread_id}"
+            )
             raise NoAccessError()
 
         logger.info(f"User original query: {user_message}")
@@ -259,63 +165,85 @@ class ShogunAgent(BaseAgent):
         # Append user message to chat history
         self.append_message(role="user", content=user_message)
 
-        enriched_query = await self.process_user_query()
-        query = enriched_query["search_query"]
-
-        logger.info(f"Search Query: {query}")
-
-        # We should check if the tags contain 'needs_search'. But for now, we always perform a search
-        tags = enriched_query["tags"]
-        if tags is None or tags["needs_search"]:
-            search_input = SearxNGInput(query=query, categories=[Category.general])
-            metadata = MetaData(has_math=True if tags and tags["has_math"] else False)
-
-            search_results, _ = await asyncio.gather(
-                searxng_search_results_json(search_input),
-                self.emit_metadata(metadata=metadata),
-            )
-        else:
-            search_results = TopResults(general=[], images=[], videos=[])
-
-        general_results = search_results["general"]
-
-        _, web_pages = await asyncio.gather(
-            # Sending search results to the client ASAP
-            self.emit_web_results(general_results),
-            # Fetch web page contents for llm to use as context
-            self.fetch_web_pages(general_results[:5]),)
-
-        answer, medium_results, related_questions = await asyncio.gather(
-            self.gen_answer(web_pages),
-            self.process_medium(query, tags),
-            self.gen_related_questions(web_pages)
+        client = AsyncOpenAI(
+            base_url=os.environ["MD_MODEL_URL"], api_key=os.environ["MD_MODEL_API_KEY"]
         )
 
-        logger.info("Answer generated successfully.")
+        system_prompt = general_prompt.format(current_date=datetime.now().isoformat())
 
-        logger.debug(f"Answer for query {query} is {answer}")
-        logger.debug(f"Related questions: {related_questions}")
+        messages: List[ChatCompletionMessageParam] = [
+            {"role": "system", "content": system_prompt}
+        ]
+        for message in self.chat_messages:
+            messages.append({"role": message["role"], "content": message["content"]})
 
-        await self.emit_related_questions(related_questions)
+        logger.info(messages)
 
-        if not thread_metadata:
-            # Create a new thread metadata
-            thread_metadata = ThreadMetadata(
-                name=user_message[:50],
-                user_id=self.user_id,
-                created_at=datetime.now().isoformat(),
-                slug=create_slug(user_message),
-                related_questions=related_questions,
-            )
-            # We send the thread metadata to the client for it save it in the local storage
-            await asyncio.gather(self.emit_thread_metadata(thread_metadata), self.upsert_thread_metadata(thread_metadata))
+        response = await client.chat.completions.create(
+            model=os.environ["MD_MODEL"],
+            messages=messages,
+            max_tokens=2500,
+            tools=[to_openapi_spec(searxng_search_results_json)],
+            tool_choice="auto",
+            stream=True,
+        )
 
-        # Save the chat history
-        metadata = MetaData(has_math=False)
+        tool_calls_chunks: List[ChoiceDeltaToolCall] = []
 
-        if tags is not None and tags["has_math"]:
-            metadata["has_math"] = True
+        sources_and_medium_emitted = False
 
-        await self.save_chat_history(user_message, answer, medium_results, general_results, metadata)
+        async for chunk in response:
+            if chunk.choices[0].delta.content:
+                # That means we have an answer and no tool calls, we can safely emit the answer and the empty medium results
+                if not sources_and_medium_emitted:
+                    await asyncio.gather(
+                        self.emit_web_results([]),
+                        self.emit_medium_results(
+                            TopResults(general=[], images=[], videos=[])
+                        ),
+                    )
+                    sources_and_medium_emitted = True
+                await self.emit_answer(chunk.choices[0].delta.content)
+            if chunk.choices[0].delta.tool_calls:
+                tool_calls_chunks.extend(chunk.choices[0].delta.tool_calls)
 
+        if not tool_calls_chunks:
+            return
 
+        tool_calls = self.concat_choice_delta_tool_calls(tool_calls_chunks)
+
+        logger.debug(tool_calls)
+
+        search_results: Optional[TopResults] = None
+
+        if not tool_calls:
+            return
+
+        # TODO: double check if this is OK
+        self.append_message(
+            role="assistant",
+            content=json.dumps(json.dumps([tool.model_dump() for tool in tool_calls])),
+        )
+        for tool_call in tool_calls:
+            if tool_call.function.name == "searxng_search_results_json":
+                args = json.loads(tool_call.function.arguments)
+                search_results = await searxng_search_results_json(SearxNGInput(**args))
+
+                if search_results["general"]:
+                    # Send the search results to the user ASAP for visual feedback
+                    await self.emit_web_results(search_results["general"])
+
+                    await asyncio.gather(
+                        self.gen_answer_with_search_context(
+                            tool_use_id=tool_call.id, search_results=search_results
+                        ),
+                        self.emit_medium_results(search_results),
+                    )
+                else:
+                    asyncio.gather(
+                        self.emit_answer("I couldn't find any relevant information."),
+                        self.emit_web_results([]),
+                        self.emit_medium_results(
+                            TopResults(general=[], images=[], videos=[])
+                        ),
+                    )
