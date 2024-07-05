@@ -279,7 +279,7 @@ class BaseAgent(ABC):
         for m in chat_history:
             if "user" in roles:
                 self.chat_messages.append({"role": "user", "content": m["query"]})
-            if "assistnat" in roles:
+            if "assistant" in roles:
                 self.chat_messages.append({"role": "assistant", "content": m["answer"]})
 
         self.chat_messages_loaded = True
@@ -297,15 +297,18 @@ class BaseAgent(ABC):
         self.chat_messages.append({"role": role, "content": content})
 
     def chat_history_to_string(
-        self, roles: Optional[List[Literal["user", "assistant"]]] = None
+        self, roles: Optional[List[Literal["user", "assistant"]]] = None, turns: int = -1
     ) -> str:
         if roles is None:
             roles = ["user", "assistant"]
 
+        # If turns is -1, use all entries, otherwise limit to the specified number of turns from the end
+        messages_to_include = self.chat_messages if turns == -1 else self.chat_messages[-turns:]
+
         return "\n".join(
             [
                 f"{m['role']}: {m['content']}"
-                for m in self.chat_messages
+                for m in messages_to_include
                 if m["role"] in roles
             ]
         )

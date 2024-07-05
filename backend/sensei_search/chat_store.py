@@ -7,7 +7,7 @@ import redis.asyncio as redis
 from sensei_search.logger import logger
 from sensei_search.models import ChatHistoryItem, ThreadMetadata
 
-CHAT_HISTORY_LIMIT = 5
+CHAT_HISTORY_LIMIT = 2
 
 
 class ChatStore:

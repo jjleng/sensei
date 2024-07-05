@@ -22,15 +22,13 @@ from sensei_search.logger import logger
 from sensei_search.agents.shogun.prompts import (
     answer_prompt,
     general_prompt,
+    related_questions_prompt
 )
-from sensei_search.tools import Category
 from sensei_search.tools import Input as SearxNGInput
 from sensei_search.tools import TopResults, searxng_search_results_json
 from sensei_search.utils import create_slug, to_openapi_spec
 
 load_envs()
-
-FETCH_WEBPAGE_TIMEOUT = 3
 
 
 async def noop() -> None:
@@ -45,6 +43,48 @@ class ShogunAgent(BaseAgent):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
+
+    def search_results_to_string(self, search_results: TopResults) -> str:
+        # Construct the search context as this format:
+        # [1]
+        # Page 1 url
+        # Page 1 title
+        # Page 1 content
+        search_context = []
+        for i, result in enumerate(search_results["general"]):
+            search_context.append(
+                f"[{i+1}]\n{result['url']}\n{result['title']}\n{result['content']}"
+            )
+        return "\n\n".join(search_context)
+
+    async def gen_related_questions(self) -> List[str]:
+        chat_history = self.chat_history_to_string(["user", "assistant"], 5)
+
+        prompt = related_questions_prompt.format(
+            chat_history=chat_history
+        )
+
+        try:
+            client = AsyncOpenAI(
+                base_url=os.environ["SM_MODLE_URL"],
+                api_key=os.environ["SM_MODEL_API_KEY"],
+            )
+            response = await client.chat.completions.create(
+                    model=os.environ["SM_MODEL"],
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.0,
+                    max_tokens=500,
+                    stream=False,
+                )
+
+            return [
+                re.sub(r"^\s*\d+\.\s*", "", item)
+                for item in (response.choices[0].message.content or "").split("\n")
+            ]
+        except Exception as e:
+            logger.exception(f"Error generating related questions: {e}")
+            return []
+
 
     async def gen_answer_with_search_context(
         self, tool_use_id: str, search_results: TopResults
@@ -63,17 +103,6 @@ class ShogunAgent(BaseAgent):
         for message in self.chat_messages:
             messages.append({"role": message["role"], "content": message["content"]})
 
-        # Construct the search context as this format:
-        # [1]
-        # Page 1 url
-        # Page 1 title
-        # Page 1 content
-        search_context = []
-        for i, result in enumerate(search_results["general"]):
-            search_context.append(
-                f"[{i+1}]\n{result['url']}\n{result['title']}\n{result['content']}"
-            )
-
         # We need to append the search results to the chat history
         messages.append(
             {
@@ -83,7 +112,7 @@ class ShogunAgent(BaseAgent):
                         {
                             "type": "tool_result",
                             "tool_use_id": tool_use_id,
-                            "content": "\n\n".join(search_context),
+                            "content": self.search_results_to_string(search_results),
                         }
                     ]
                 ),
@@ -212,7 +241,7 @@ class ShogunAgent(BaseAgent):
 
         tool_calls = self.concat_choice_delta_tool_calls(tool_calls_chunks)
 
-        logger.debug(tool_calls)
+        logger.info(tool_calls)
 
         search_results: Optional[TopResults] = None
 
@@ -233,11 +262,39 @@ class ShogunAgent(BaseAgent):
                     # Send the search results to the user ASAP for visual feedback
                     await self.emit_web_results(search_results["general"])
 
-                    await asyncio.gather(
+                    answer, _ = await asyncio.gather(
                         self.gen_answer_with_search_context(
                             tool_use_id=tool_call.id, search_results=search_results
                         ),
                         self.emit_medium_results(search_results),
+                    )
+
+                    self.append_message(role="assistant", content=answer)
+
+                    # Generate related questions
+                    related_questions = await self.gen_related_questions()
+                    await self.emit_related_questions(related_questions)
+
+                    if not thread_metadata:
+                        # Create a new thread metadata
+                        thread_metadata = ThreadMetadata(
+                            name=user_message[:50],
+                            user_id=self.user_id,
+                            created_at=datetime.now().isoformat(),
+                            slug=create_slug(user_message),
+                            related_questions=related_questions,
+                        )
+                        # We send the thread metadata to the client for it save it in the local storage
+                        await asyncio.gather(
+                            self.emit_thread_metadata(thread_metadata),
+                            self.upsert_thread_metadata(thread_metadata),
+                        )
+
+                    # Save the chat history
+                    metadata = MetaData(has_math=False)
+
+                    await self.save_chat_history(
+                        user_message, answer, search_results, search_results["general"], metadata
                     )
                 else:
                     asyncio.gather(
