@@ -1,13 +1,15 @@
 from __future__ import annotations
+
 import json
 import os
-from typing import List, Optional, Any
+from typing import Any, List, Optional
 
 import redis.asyncio as redis
+
 from sensei_search.logger import logger
 from sensei_search.models import ChatHistoryItem, ThreadMetadata
 
-CHAT_HISTORY_LIMIT = 2
+CHAT_HISTORY_LIMIT = 3
 
 
 class ChatStore:

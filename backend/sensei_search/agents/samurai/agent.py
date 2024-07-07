@@ -2,28 +2,25 @@ import asyncio
 import os
 import re
 from datetime import datetime
-from typing import List, Optional, Any
+from typing import Any, List, Optional
 
 from openai import AsyncOpenAI, OpenAI
 
-from sensei_search.base_agent import BaseAgent, EnrichedQuery, QueryTags, NoAccessError
-from sensei_search.chat_store import (
-    ThreadMetadata,
-)
-from sensei_search.models import (
-    MetaData,
-)
-from sensei_search.env import load_envs
-from sensei_search.logger import logger
 from sensei_search.agents.samurai.prompts import (
     answer_prompt,
     classification_prompt,
     related_questions_prompt,
     search_prompt,
 )
-from sensei_search.tools import Category
+from sensei_search.base_agent import BaseAgent, EnrichedQuery, NoAccessError, QueryTags
+from sensei_search.chat_store import ThreadMetadata
+from sensei_search.env import load_envs
+from sensei_search.logger import logger
+from sensei_search.models import MetaData
 from sensei_search.tools import Input as SearxNGInput
-from sensei_search.tools import TopResults, searxng_search_results_json
+from sensei_search.tools.search import Category
+from sensei_search.tools.search import Input as SearxNGInput
+from sensei_search.tools.search import SearxNG, TopResults
 from sensei_search.utils import create_slug
 
 load_envs()
@@ -255,7 +252,7 @@ class SamuraiAgent(BaseAgent):
         if categories:
             search_input = SearxNGInput(query=query, categories=categories)
             # Search for images and videos
-            medium_results = await searxng_search_results_json(search_input)
+            medium_results = await SearxNG.search(search_input)
         else:
             medium_results = TopResults(general=[], images=[], videos=[])
         await self.emit_medium_results(medium_results)
@@ -299,7 +296,7 @@ class SamuraiAgent(BaseAgent):
             metadata = MetaData(has_math=True if tags and tags["has_math"] else False)
 
             search_results, _ = await asyncio.gather(
-                searxng_search_results_json(search_input),
+                SearxNG.search(search_input),
                 self.emit_metadata(metadata=metadata),
             )
         else:
