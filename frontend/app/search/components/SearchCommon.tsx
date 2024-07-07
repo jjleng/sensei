@@ -14,6 +14,7 @@ import { ListPlus, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ChatThreadStore from '@/ChatThreadStore';
 import { getCurrentUser } from '@/user';
+import { useDebouncedCallback } from 'use-debounce';
 
 interface ChatHistoryItem {
   // uuid, unique for each query. This is used to identify the query in the thread.
@@ -62,6 +63,20 @@ export function SearchCommon(props: { threadId: string; slug?: string }) {
   const [relatedQuestions, setRelatedQuestions] = useState<string[]>([]);
 
   const { addToast } = useToast();
+
+  const answerRef = useRef('');
+
+  const debouncedUpdateChatThread = useDebouncedCallback(() => {
+    setChatThread((prevChatThread) =>
+      produce(prevChatThread, (draft) => {
+        if (draft.length === 0) return;
+
+        const lastChatHistoryItem = draft[draft.length - 1];
+        // Update the last item's answer field with the concatenated answer
+        lastChatHistoryItem.answer = answerRef.current;
+      })
+    );
+  }, 10);
 
   // TODO: instead of the client side fetching, move this to a server component
   useEffect(() => {
@@ -188,17 +203,8 @@ export function SearchCommon(props: { threadId: string; slug?: string }) {
       });
 
       newSocket.on('answer', ({ data }) => {
-        setChatThread((prevChatThread) =>
-          produce(prevChatThread, (draft) => {
-            if (draft.length === 0) return;
-
-            const lastChatHistoryItem = draft[draft.length - 1];
-            // Concatenate the answer if it is not the first response
-            lastChatHistoryItem.answer = lastChatHistoryItem.answer
-              ? lastChatHistoryItem.answer + data
-              : data;
-          })
-        );
+        answerRef.current = answerRef.current + data;
+        debouncedUpdateChatThread();
       });
 
       newSocket.on('related_questions', ({ data }) => {
@@ -228,6 +234,7 @@ export function SearchCommon(props: { threadId: string; slug?: string }) {
         console.log('Disconnected from the server');
         newSocket.close(); // Close the socket when 'disconnect' event is received
         socketRef.current = null;
+        answerRef.current = '';
       });
 
       // Socket level errors
@@ -235,6 +242,7 @@ export function SearchCommon(props: { threadId: string; slug?: string }) {
         setProcessing(false);
         addToast('An error occurred', 'error');
         console.error('An error occurred:', error);
+        answerRef.current = '';
 
         // Remove the last pending ChatHistoryItem
         setChatThread((prevChatThread) =>
@@ -246,6 +254,7 @@ export function SearchCommon(props: { threadId: string; slug?: string }) {
       newSocket.on('app_error', ({ message }) => {
         setProcessing(false);
         addToast(message, 'error');
+        answerRef.current = '';
 
         // Remove the last pending ChatHistoryItem
         setChatThread((prevChatThread) =>
@@ -255,7 +264,14 @@ export function SearchCommon(props: { threadId: string; slug?: string }) {
 
       socketRef.current = newSocket;
     })();
-  }, [addToast, currentQuery, chatThread, dispatch, router]);
+  }, [
+    addToast,
+    currentQuery,
+    chatThread,
+    dispatch,
+    router,
+    debouncedUpdateChatThread,
+  ]);
 
   useEffect(() => {
     if (
