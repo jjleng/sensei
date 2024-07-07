@@ -72,7 +72,7 @@ class SamuraiAgent(BaseAgent):
         and classify the query to determine its nature and required handling.
         """
         client = AsyncOpenAI(
-            base_url=os.environ["SM_MODLE_URL"], api_key=os.environ["SM_MODEL_API_KEY"]
+            base_url=os.environ["SM_MODEL_URL"], api_key=os.environ["SM_MODEL_API_KEY"]
         )
 
         # We only load user's queries from the chat history to save LLM tokens
@@ -159,7 +159,7 @@ class SamuraiAgent(BaseAgent):
         try:
 
             client = OpenAI(
-                base_url=os.environ["SM_MODLE_URL"],
+                base_url=os.environ["SM_MODEL_URL"],
                 api_key=os.environ["SM_MODEL_API_KEY"],
             )
             response = (

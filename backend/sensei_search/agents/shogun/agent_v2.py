@@ -59,7 +59,7 @@ class ShogunAgent(BaseAgent):
     async def gen_search_query(self) -> Optional[str]:
         logger.info("generating search query")
         client = AsyncOpenAI(
-            base_url=os.environ["SM_MODLE_URL"],
+            base_url=os.environ["SM_MODEL_URL"],
             api_key=os.environ["SM_MODEL_API_KEY"],
         )
 
@@ -110,7 +110,7 @@ class ShogunAgent(BaseAgent):
         if query:
             try:
                 client = AsyncOpenAI(
-                    base_url=os.environ["SM_MODLE_URL"],
+                    base_url=os.environ["SM_MODEL_URL"],
                     api_key=os.environ["SM_MODEL_API_KEY"],
                 )
                 chat_history = self.chat_history_to_string(["user", "assistant"], 5)
@@ -165,7 +165,7 @@ class ShogunAgent(BaseAgent):
 
         try:
             client = AsyncOpenAI(
-                base_url=os.environ["SM_MODLE_URL"],
+                base_url=os.environ["SM_MODEL_URL"],
                 api_key=os.environ["SM_MODEL_API_KEY"],
             )
             response = await client.chat.completions.create(

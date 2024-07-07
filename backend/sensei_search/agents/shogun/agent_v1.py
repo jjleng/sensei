@@ -64,7 +64,7 @@ class ShogunAgent(BaseAgent):
 
         try:
             client = AsyncOpenAI(
-                base_url=os.environ["SM_MODLE_URL"],
+                base_url=os.environ["SM_MODEL_URL"],
                 api_key=os.environ["SM_MODEL_API_KEY"],
             )
             response = await client.chat.completions.create(
