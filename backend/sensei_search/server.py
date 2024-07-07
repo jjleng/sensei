@@ -8,11 +8,11 @@ import socketio  # type: ignore[import-untyped]
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from sensei_search.agents import ShogunAgent
+from sensei_search.agents.shogun.agent_v2 import ShogunAgent
 from sensei_search.base_agent import NoAccessError
 from sensei_search.chat_store import ChatStore
-from sensei_search.models import ChatThread
 from sensei_search.logger import logger
+from sensei_search.models import ChatThread
 
 env = os.getenv("ENV", "development")
 

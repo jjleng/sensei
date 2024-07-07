@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from slugify import slugify
-import uuid
 import inspect
-from typing import Callable, get_type_hints, Dict
-from openai.types.chat import ChatCompletionToolParam
+import uuid
+from typing import Callable, Dict, get_type_hints
 
+from openai.types.chat import ChatCompletionToolParam
 from pydantic import BaseModel, TypeAdapter
+from slugify import slugify
 
 
 def create_slug(input_string: str, max_length: int = 30) -> str:

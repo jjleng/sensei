@@ -258,7 +258,11 @@ export function SearchCommon(props: { threadId: string; slug?: string }) {
   }, [addToast, currentQuery, chatThread, dispatch, router]);
 
   useEffect(() => {
-    if (endOfList.current) {
+    if (
+      endOfList.current &&
+      chatThread.length > 0 &&
+      chatThread[chatThread.length - 1].answer === null
+    ) {
       const elementTop = endOfList.current.getBoundingClientRect().top;
       window.scrollTo({
         top: window.scrollY + elementTop - 20,
@@ -273,15 +277,10 @@ export function SearchCommon(props: { threadId: string; slug?: string }) {
         <React.Fragment key={chatHistoryItem.id}>
           {index !== 0 && <Separator />}
           {/* Marker for the end of the ChatHistoryItem cells */}
-          <div
-            ref={endOfList}
-            className={
-              index === chatThread.length - 1 &&
-              chatHistoryItem.webSources === null
-                ? 'h-0 w-full'
-                : ''
-            }
-          ></div>
+          {index === chatThread.length - 1 &&
+          chatHistoryItem.answer === null ? (
+            <div ref={endOfList} className="h-0 w-full"></div>
+          ) : null}
           <ChatHistoryItem
             webSources={chatHistoryItem.webSources}
             mediums={chatHistoryItem.mediums}

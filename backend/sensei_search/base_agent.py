@@ -1,30 +1,20 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 import asyncio
 import uuid
+from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Dict, List, Literal, Optional, Protocol, Union
 
-from pydantic import BaseModel, Field
-from typing_extensions import TypedDict
 import trafilatura  # type: ignore[import]
 from aiohttp import ClientSession, ClientTimeout
+from pydantic import BaseModel, Field
+from typing_extensions import TypedDict
 
-from sensei_search.chat_store import ChatStore, ThreadMetadata, ChatHistoryItem
-from sensei_search.models import (
-    MetaData,
-)
-from sensei_search.tools import TopResults, GeneralResult
-
+from sensei_search.chat_store import ChatHistoryItem, ChatStore, ThreadMetadata
 from sensei_search.logger import logger
-from sensei_search.models import (
-    MediumImage,
-    MediumVideo,
-    MetaData,
-    WebResult,
-)
-
+from sensei_search.models import MediumImage, MediumVideo, MetaData, WebResult
+from sensei_search.tools import GeneralResult, TopResults
 
 FETCH_WEBPAGE_TIMEOUT = 3
 
@@ -297,13 +287,17 @@ class BaseAgent(ABC):
         self.chat_messages.append({"role": role, "content": content})
 
     def chat_history_to_string(
-        self, roles: Optional[List[Literal["user", "assistant"]]] = None, turns: int = -1
+        self,
+        roles: Optional[List[Literal["user", "assistant"]]] = None,
+        turns: int = -1,
     ) -> str:
         if roles is None:
             roles = ["user", "assistant"]
 
         # If turns is -1, use all entries, otherwise limit to the specified number of turns from the end
-        messages_to_include = self.chat_messages if turns == -1 else self.chat_messages[-turns:]
+        messages_to_include = (
+            self.chat_messages if turns == -1 else self.chat_messages[-turns:]
+        )
 
         return "\n".join(
             [

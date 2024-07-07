@@ -1,31 +1,28 @@
 import asyncio
+import json
 import os
 import re
 from datetime import datetime
-from typing import List, Optional, Any
+from typing import Any, List, Optional
 
 from openai import AsyncOpenAI
-import json
 from openai.types.chat import ChatCompletionMessageParam, ChatCompletionMessageToolCall
 from openai.types.chat.chat_completion_chunk import ChoiceDeltaToolCall
 from openai.types.chat.chat_completion_message_tool_call import Function
 
-from sensei_search.base_agent import BaseAgent, NoAccessError
-from sensei_search.chat_store import (
-    ThreadMetadata,
-)
-from sensei_search.models import (
-    MetaData,
-)
-from sensei_search.env import load_envs
-from sensei_search.logger import logger
 from sensei_search.agents.shogun.prompts import (
     answer_prompt,
     general_prompt,
-    related_questions_prompt
+    related_questions_prompt,
 )
-from sensei_search.tools import Input as SearxNGInput
-from sensei_search.tools import TopResults, searxng_search_results_json
+from sensei_search.base_agent import BaseAgent, NoAccessError
+from sensei_search.chat_store import ThreadMetadata
+from sensei_search.env import load_envs
+from sensei_search.logger import logger
+from sensei_search.models import MetaData
+from sensei_search.tools.search import Bing
+from sensei_search.tools.search import Input as SearchInput
+from sensei_search.tools.search import TopResults
 from sensei_search.utils import create_slug, to_openapi_spec
 
 load_envs()
@@ -39,6 +36,9 @@ class ShogunAgent(BaseAgent):
     """
     The goal of the Shogun is to be a high performance agent that can produce high-quality answers with faster speed.
     Shogun aim to achieve the goals with all tools available, not just the open source ones.
+    This agent knows how to call tools.
+
+    UPDATE: Tool calls not friendly to the Time To First Byte (TTFB) as the model is not lean enough.
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -60,9 +60,7 @@ class ShogunAgent(BaseAgent):
     async def gen_related_questions(self) -> List[str]:
         chat_history = self.chat_history_to_string(["user", "assistant"], 5)
 
-        prompt = related_questions_prompt.format(
-            chat_history=chat_history
-        )
+        prompt = related_questions_prompt.format(chat_history=chat_history)
 
         try:
             client = AsyncOpenAI(
@@ -70,21 +68,21 @@ class ShogunAgent(BaseAgent):
                 api_key=os.environ["SM_MODEL_API_KEY"],
             )
             response = await client.chat.completions.create(
-                    model=os.environ["SM_MODEL"],
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.0,
-                    max_tokens=500,
-                    stream=False,
-                )
+                model=os.environ["SM_MODEL"],
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.0,
+                max_tokens=500,
+                stream=False,
+            )
 
             return [
                 re.sub(r"^\s*\d+\.\s*", "", item)
                 for item in (response.choices[0].message.content or "").split("\n")
+                if item.strip()
             ]
         except Exception as e:
             logger.exception(f"Error generating related questions: {e}")
             return []
-
 
     async def gen_answer_with_search_context(
         self, tool_use_id: str, search_results: TopResults
@@ -212,7 +210,7 @@ class ShogunAgent(BaseAgent):
             model=os.environ["MD_MODEL"],
             messages=messages,
             max_tokens=2500,
-            tools=[to_openapi_spec(searxng_search_results_json)],
+            tools=[to_openapi_spec(Bing.search)],
             tool_choice="auto",
             stream=True,
         )
@@ -254,9 +252,9 @@ class ShogunAgent(BaseAgent):
             content=json.dumps(json.dumps([tool.model_dump() for tool in tool_calls])),
         )
         for tool_call in tool_calls:
-            if tool_call.function.name == "searxng_search_results_json":
+            if tool_call.function.name == "search":
                 args = json.loads(tool_call.function.arguments)
-                search_results = await searxng_search_results_json(SearxNGInput(**args))
+                search_results = await Bing.search(SearchInput(**args))
 
                 if search_results["general"]:
                     # Send the search results to the user ASAP for visual feedback
@@ -294,7 +292,11 @@ class ShogunAgent(BaseAgent):
                     metadata = MetaData(has_math=False)
 
                     await self.save_chat_history(
-                        user_message, answer, search_results, search_results["general"], metadata
+                        user_message,
+                        answer,
+                        search_results,
+                        search_results["general"],
+                        metadata,
                     )
                 else:
                     asyncio.gather(
