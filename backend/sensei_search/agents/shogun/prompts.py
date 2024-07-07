@@ -107,8 +107,7 @@ Current Date: {current_date}
 
 ## General Instructions
 Your task is to decide if a search tool is needed to help find the best results for the user's latest query from a chat history. If yes, produce the search query. You should follow below steps closely:
-1. If no search is needed because the query is a general greeting, introduction, or other non-informational request (e.g., "how are you?", "what's your name?"), just print "NO_SEARCH_NEEDED", nothing else.
-- A search is not needed for general greetings, introductions, or other non-informational requests (e.g., "how are you?", "what's your name?").
+1. A search is not needed for general greetings, introductions, or other non-informational requests (e.g., "how are you?", "what's your name?", "what can you do?"). If no search is needed, just print "NO_SEARCH_NEEDED", nothing else.
 - Previous messages in the chat history should not influence your decision.
 - Do not skip a search based on previous messages in the chat history.
 - Do not use any reasoning to skip a search.
