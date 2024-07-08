@@ -23,7 +23,7 @@ export default function Search() {
   return (
     // TODO: add fallback
     <Suspense fallback={<div></div>}>
-      <SearchCommon threadId={threadIdRef.current} />
+      <SearchCommon threadId={threadIdRef.current} error={null} />
     </Suspense>
   );
 }

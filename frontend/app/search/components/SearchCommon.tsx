@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import ChatThreadStore from '@/ChatThreadStore';
 import { getCurrentUser } from '@/user';
 import { useDebouncedCallback } from 'use-debounce';
+import { v4 as uuidv4 } from 'uuid';
 
 interface ChatHistoryItem {
   // uuid, unique for each query. This is used to identify the query in the thread.
@@ -33,14 +34,19 @@ interface ChatHistoryItem {
   metadata: MetaData | null;
 }
 
-export function SearchCommon(props: { threadId: string; slug?: string }) {
+export function SearchCommon(props: {
+  threadId?: string;
+  chatHistory?: any[];
+  metadata?: Record<string, any>;
+  error: string | null;
+}) {
   const router = useRouter();
 
   // Conversation thread ID
   // Here, we generate a new thread ID for each page refresh. If the thread ID doesn't exist, server will crate a new thread.
   // Client could also choose to send in an existing thread ID to continue the conversation.
   // Ideally, the thread ID should be generated on the server and sent to the client. But for now, this is not the case.
-  const threadId = useRef(props.threadId);
+  const threadId = useRef(props.threadId || uuidv4());
 
   // Store the websocket
   const socketRef = useRef<Socket | null>(null);
@@ -48,7 +54,12 @@ export function SearchCommon(props: { threadId: string; slug?: string }) {
   // If the search is in progress
   const [processing, setProcessing] = useState(false);
   // A chat thread is a list of ChatHistoryItem objects. Each ChatHistoryItem object represents a query and its response along with the search results.
-  const [chatThread, setChatThread] = useState<ChatHistoryItem[]>([]);
+  const [chatThread, setChatThread] = useState<ChatHistoryItem[]>(
+    props.chatHistory?.map(({ web_results, ...rest }: any) => ({
+      webSources: web_results,
+      ...rest,
+    })) ?? []
+  );
   // Current query is stored in the context.
   const { currentQuery, isSidebarOpen, dispatch } = useContext(Context);
 
@@ -60,7 +71,9 @@ export function SearchCommon(props: { threadId: string; slug?: string }) {
   const endOfList = useRef<HTMLDivElement>(null);
 
   // Related questions
-  const [relatedQuestions, setRelatedQuestions] = useState<string[]>([]);
+  const [relatedQuestions, setRelatedQuestions] = useState<string[]>(
+    props.metadata?.related_questions ?? []
+  );
 
   const { addToast } = useToast();
 
@@ -80,42 +93,10 @@ export function SearchCommon(props: { threadId: string; slug?: string }) {
 
   // TODO: instead of the client side fetching, move this to a server component
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_SOCKET_HOST!}/threads/${threadId.current}`
-        );
-        if (!response.ok) {
-          throw new Error('Failed to fetch the thread');
-        }
-
-        const { thread_id, chat_history, metadata } = await response.json();
-        const updatedResult = chat_history.map(
-          ({ web_results, ...rest }: any) => ({
-            webSources: web_results,
-            ...rest,
-          })
-        );
-        setChatThread(
-          produce((draft) => {
-            const existingIds = new Set(draft.map((item) => item.id));
-            const uniqueResults = updatedResult.filter(
-              (result: any) => !existingIds.has(result.id)
-            );
-            draft.unshift(...uniqueResults);
-          })
-        );
-        setRelatedQuestions(metadata.related_questions);
-      } catch (error) {
-        addToast('Failed to fetch the thread', 'error');
-      }
-    };
-
-    // Only fetch the thread if the slug is provided
-    if (props.slug) {
-      fetchData();
+    if (props.error) {
+      addToast(props.error, 'error');
     }
-  }, [addToast, props.slug]);
+  }, [addToast, props.error]);
 
   useEffect(() => {
     // Search will be done over a websocket connection.
