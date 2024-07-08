@@ -1,25 +1,31 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import ChatThreadStore, { ChatThreadEntry } from '@/ChatThreadStore';
 import { SearchCommon } from '@/search/components/SearchCommon';
 
-export default function SearchPage({ params }: { params: { slug: string } }) {
-  const [chatThread, setChatThread] = useState<
-    ChatThreadEntry | undefined | null
-  >(null);
-
-  useEffect(() => {
-    // Check if window is defined (browser environment)
-    if (typeof window !== 'undefined') {
-      const foundChatThread = ChatThreadStore.findBySlug(params.slug);
-      setChatThread(foundChatThread);
+const fetchData = async (slug: string) => {
+  try {
+    const response = await fetch(`${process.env.HTTP_SERVER!}/threads/${slug}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch the thread');
     }
-  }, [params.slug]);
 
-  if (!chatThread) {
-    return null;
+    const { thread_id, chat_history, metadata } = await response.json();
+    return {
+      threadId: thread_id,
+      chatHistory: chat_history,
+      metadata,
+      error: null,
+    };
+  } catch (error) {
+    console.log(error);
+    return { error: 'Failed to load chat history.' };
   }
+};
 
-  return <SearchCommon threadId={chatThread.id} slug={params.slug} />;
+export default async function SearchPage({
+  params,
+}: {
+  params: { slug: string };
+}) {
+  const data = await fetchData(params.slug);
+
+  return <SearchCommon {...data} />;
 }

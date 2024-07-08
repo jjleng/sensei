@@ -102,12 +102,17 @@ async def sensei_ask(sid: str, thread_id: str, user_query: str, user_id: str) ->
     asyncio.create_task(run_agent())
 
 
-@app.get("/threads/{thread_id}")
-async def get_thread(thread_id: str) -> ChatThread:
+@app.get("/threads/{slug}")
+async def get_thread(slug: str) -> ChatThread:
     """
     Fetches the chat history for a given thread.
     """
-    logger.info(f"Fetching thread {thread_id}")
+    logger.info(f"Fetching thread {slug}")
+
+    thread_id = await ChatStore().get_thread_id_by_slug(slug)
+
+    logger.info(f"Thread id for slug {slug} is {thread_id}")
+
     chat_store = ChatStore()
 
     chat_history, thread_metadata = await asyncio.gather(

@@ -44,6 +44,19 @@ class ChatStore:
                 },
             )
         )
+        slug = metadata.get("slug")
+        if slug:
+            await self._awaitable_to_any(
+                self.redis.set(f"slug_to_thread_id:{slug}", thread_id)
+            )
+
+    async def get_thread_id_by_slug(self, slug: str) -> str:
+        thread_id = await self._awaitable_to_any(
+            self.redis.get(f"slug_to_thread_id:{slug}")
+        )
+        if not thread_id:
+            raise ValueError(f"No thread found for slug: {slug}")
+        return thread_id
 
     async def update_thread(self, thread_id: str, metadata: ThreadMetadata) -> None:
         await self.create_thread(thread_id, metadata)
