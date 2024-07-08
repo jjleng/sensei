@@ -361,6 +361,7 @@ class ShogunAgent(BaseAgent):
                 self.emit_thread_metadata(thread_metadata),
                 self.upsert_thread_metadata(thread_metadata),
             )
+            logger.info(f"Saved thread metadata: {thread_metadata}")
 
         # Save the chat history
         metadata = MetaData(has_math=False)
