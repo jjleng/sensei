@@ -15,10 +15,8 @@ interface Props {
   enableMath?: boolean;
 }
 
-const RichContentRenderer: React.FC<Props> = ({
-  richContent,
-  enableMath = false,
-}) => {
+const RichContentRenderer: React.FC<Props> = ({ richContent }) => {
+  const enableMath = true;
   const remarkPlugins: any = [remarkGfm];
   if (enableMath) {
     remarkPlugins.push(remarkMath);
