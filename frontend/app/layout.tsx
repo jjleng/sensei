@@ -9,11 +9,25 @@ import { MainLayout } from '@/components/MainLayout';
 
 const inter = Inter({ subsets: ['latin'] });
 
+const title = 'Sensei';
+const description = 'Knowledge discovery with Sensei AI';
+
 export const metadata: Metadata = {
-  title: 'Sensei Search',
-  description: 'Search with Sensei AI',
+  metadataBase: new URL('https://heysensei.app/'),
+  title,
+  description,
   icons: {
     icon: [{ rel: 'icon', url: './favicon.ico', type: 'image/x-icon' }],
+  },
+  openGraph: {
+    title,
+    description,
+  },
+  twitter: {
+    title,
+    description,
+    card: 'summary_large_image',
+    creator: '@jijun_l',
   },
   other: {
     google: 'notranslate',
