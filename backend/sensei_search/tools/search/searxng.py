@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import os
 from urllib.parse import urljoin
 
 from aiohttp import ClientSession
 
-from sensei_search.env import load_envs
+from sensei_search.config import SEARXNG_URL
 from sensei_search.logger import logger
 from sensei_search.tools.search.base import (
     Input,
@@ -16,8 +15,6 @@ from sensei_search.tools.search.base import (
 )
 
 MAX_RESULTS = 5
-
-load_envs()
 
 
 async def filter_medium_by_scores(results: TopResults) -> TopResults:
@@ -54,7 +51,7 @@ class SearxNG(SearchTool):
 
         query, categories = args.query, args.categories
 
-        searxng_base_url = os.environ.get("SEARXNG_URL")
+        searxng_base_url = SEARXNG_URL
 
         assert searxng_base_url, "SEARXNG_URL environment variable must be set"
 

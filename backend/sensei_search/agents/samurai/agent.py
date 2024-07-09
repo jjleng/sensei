@@ -14,6 +14,14 @@ from sensei_search.agents.samurai.prompts import (
 )
 from sensei_search.base_agent import BaseAgent, EnrichedQuery, NoAccessError, QueryTags
 from sensei_search.chat_store import ThreadMetadata
+from sensei_search.config import (
+    MD_MODEL,
+    MD_MODEL_API_KEY,
+    MD_MODEL_URL,
+    SM_MODEL,
+    SM_MODEL_API_KEY,
+    SM_MODEL_URL,
+)
 from sensei_search.env import load_envs
 from sensei_search.logger import logger
 from sensei_search.models import MetaData
@@ -71,9 +79,7 @@ class SamuraiAgent(BaseAgent):
         Generate a search query based on the chat history and the user's current query,
         and classify the query to determine its nature and required handling.
         """
-        client = AsyncOpenAI(
-            base_url=os.environ["SM_MODEL_URL"], api_key=os.environ["SM_MODEL_API_KEY"]
-        )
+        client = AsyncOpenAI(base_url=SM_MODEL_URL, api_key=SM_MODEL_API_KEY)
 
         # We only load user's queries from the chat history to save LLM tokens
         chat_history = self.chat_history_to_string(["user"])
@@ -92,13 +98,13 @@ class SamuraiAgent(BaseAgent):
 
         search_response, classification_response = await asyncio.gather(
             client.chat.completions.create(
-                model=os.environ["SM_MODEL"],
+                model=SM_MODEL,
                 messages=[{"role": "user", "content": materialized_search_prompt}],
                 temperature=0.0,
                 max_tokens=500,
             ),
             client.chat.completions.create(
-                model=os.environ["SM_MODEL"],
+                model=SM_MODEL,
                 messages=[{"role": "user", "content": materialized_classify_prompt}],
                 temperature=0.0,
                 max_tokens=500,
@@ -159,12 +165,12 @@ class SamuraiAgent(BaseAgent):
         try:
 
             client = OpenAI(
-                base_url=os.environ["SM_MODEL_URL"],
-                api_key=os.environ["SM_MODEL_API_KEY"],
+                base_url=SM_MODEL_URL,
+                api_key=SM_MODEL_API_KEY,
             )
             response = (
                 client.chat.completions.create(
-                    model=os.environ["SM_MODEL"],
+                    model=SM_MODEL,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.0,
                     max_tokens=500,
@@ -199,12 +205,10 @@ class SamuraiAgent(BaseAgent):
             current_date=datetime.now().isoformat(),
         )
 
-        client = OpenAI(
-            base_url=os.environ["MD_MODEL_URL"], api_key=os.environ["MD_MODEL_API_KEY"]
-        )
+        client = OpenAI(base_url=MD_MODEL_URL, api_key=MD_MODEL_API_KEY)
 
         response = client.chat.completions.create(
-            model=os.environ["MD_MODEL"],
+            model=MD_MODEL,
             messages=[
                 {
                     "role": "system",

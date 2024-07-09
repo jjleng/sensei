@@ -11,7 +11,6 @@ from aiohttp import ClientSession
 from pydantic import BaseModel, Field
 from typing_extensions import TypedDict
 
-from sensei_search.env import load_envs
 from sensei_search.logger import logger
 
 
