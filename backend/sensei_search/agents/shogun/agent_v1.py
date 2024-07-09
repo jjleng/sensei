@@ -1,6 +1,5 @@
 import asyncio
 import json
-import os
 import re
 from datetime import datetime
 from typing import Any, List, Optional
@@ -17,15 +16,20 @@ from sensei_search.agents.shogun.prompts import (
 )
 from sensei_search.base_agent import BaseAgent, NoAccessError
 from sensei_search.chat_store import ThreadMetadata
-from sensei_search.env import load_envs
+from sensei_search.config import (
+    MD_MODEL,
+    MD_MODEL_API_KEY,
+    MD_MODEL_URL,
+    SM_MODEL,
+    SM_MODEL_API_KEY,
+    SM_MODEL_URL,
+)
 from sensei_search.logger import logger
 from sensei_search.models import MetaData
 from sensei_search.tools.search import Bing
 from sensei_search.tools.search import Input as SearchInput
 from sensei_search.tools.search import TopResults
 from sensei_search.utils import create_slug, to_openapi_spec
-
-load_envs()
 
 
 async def noop() -> None:
@@ -64,11 +68,11 @@ class ShogunAgent(BaseAgent):
 
         try:
             client = AsyncOpenAI(
-                base_url=os.environ["SM_MODEL_URL"],
-                api_key=os.environ["SM_MODEL_API_KEY"],
+                base_url=SM_MODEL_URL,
+                api_key=SM_MODEL_API_KEY,
             )
             response = await client.chat.completions.create(
-                model=os.environ["SM_MODEL"],
+                model=SM_MODEL,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.0,
                 max_tokens=500,
@@ -89,9 +93,7 @@ class ShogunAgent(BaseAgent):
     ) -> str:
         final_answer_parts = []
 
-        client = AsyncOpenAI(
-            base_url=os.environ["MD_MODEL_URL"], api_key=os.environ["MD_MODEL_API_KEY"]
-        )
+        client = AsyncOpenAI(base_url=MD_MODEL_URL, api_key=MD_MODEL_API_KEY)
 
         system_prompt = answer_prompt.format(current_date=datetime.now().isoformat())
 
@@ -118,7 +120,7 @@ class ShogunAgent(BaseAgent):
         )
 
         response = await client.chat.completions.create(
-            model=os.environ["MD_MODEL"],
+            model=MD_MODEL,
             messages=messages,
             temperature=0.0,
             max_tokens=2500,
@@ -192,9 +194,7 @@ class ShogunAgent(BaseAgent):
         # Append user message to chat history
         self.append_message(role="user", content=user_message)
 
-        client = AsyncOpenAI(
-            base_url=os.environ["MD_MODEL_URL"], api_key=os.environ["MD_MODEL_API_KEY"]
-        )
+        client = AsyncOpenAI(base_url=MD_MODEL_URL, api_key=MD_MODEL_API_KEY)
 
         system_prompt = general_prompt.format(current_date=datetime.now().isoformat())
 
@@ -207,7 +207,7 @@ class ShogunAgent(BaseAgent):
         logger.info(messages)
 
         response = await client.chat.completions.create(
-            model=os.environ["MD_MODEL"],
+            model=MD_MODEL,
             messages=messages,
             max_tokens=2500,
             tools=[to_openapi_spec(Bing.search)],

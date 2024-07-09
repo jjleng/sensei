@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import json
-import os
 from typing import Any, List, Optional
 
 import redis.asyncio as redis
 
+from sensei_search.config import REDIS_HOST
 from sensei_search.logger import logger
 from sensei_search.models import ChatHistoryItem, ThreadMetadata
 
@@ -28,7 +28,7 @@ class ChatStore:
     def __init__(self) -> None:
         if not hasattr(self, "redis"):
             self.redis = redis.Redis(
-                host=os.environ["REDIS_HOST"], port=6379, db=0, decode_responses=True
+                host=REDIS_HOST, port=6379, db=0, decode_responses=True
             )
 
     def _get_key(self, thread_id: str) -> str:

@@ -6,7 +6,7 @@ from typing import Any, Callable, Coroutine, Dict, List, TypeVar
 
 from aiohttp import ClientSession
 
-from sensei_search.env import load_envs
+from sensei_search.config import BING_API_KEY
 from sensei_search.logger import logger
 from sensei_search.tools.search.base import (
     Category,
@@ -20,8 +20,6 @@ from sensei_search.tools.search.base import (
 )
 
 MAX_RESULTS = 5
-
-load_envs()
 
 
 T = TypeVar("T", GeneralResult, ImageResult, VideoResult)
@@ -41,7 +39,7 @@ class Bing(SearchTool):
 
         query, categories = args.query, args.categories
 
-        bing_api_key = os.environ.get("BING_API_KEY")
+        bing_api_key = BING_API_KEY
         assert bing_api_key, "BING_API_KEY environment variable must be set"
         headers = {"Ocp-Apim-Subscription-Key": bing_api_key}
 

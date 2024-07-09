@@ -1,6 +1,5 @@
 import asyncio
 import json
-import os
 import re
 from datetime import datetime
 from typing import Any, List, Optional, Tuple
@@ -18,15 +17,20 @@ from sensei_search.agents.shogun.prompts import (
 )
 from sensei_search.base_agent import BaseAgent, NoAccessError
 from sensei_search.chat_store import ThreadMetadata
-from sensei_search.env import load_envs
+from sensei_search.config import (
+    MD_MODEL,
+    MD_MODEL_API_KEY,
+    MD_MODEL_URL,
+    SM_MODEL,
+    SM_MODEL_API_KEY,
+    SM_MODEL_URL,
+)
 from sensei_search.logger import logger
 from sensei_search.models import MetaData
 from sensei_search.tools.search import Bing, Category
 from sensei_search.tools.search import Input as SearchInput
 from sensei_search.tools.search import TopResults
 from sensei_search.utils import create_slug
-
-load_envs()
 
 
 async def noop() -> None:
@@ -59,8 +63,8 @@ class ShogunAgent(BaseAgent):
     async def gen_search_query(self) -> Optional[str]:
         logger.info("generating search query")
         client = AsyncOpenAI(
-            base_url=os.environ["SM_MODEL_URL"],
-            api_key=os.environ["SM_MODEL_API_KEY"],
+            base_url=SM_MODEL_URL,
+            api_key=SM_MODEL_API_KEY,
         )
 
         chat_history = self.chat_history_to_string(["user", "assistant"], 5)
@@ -74,7 +78,7 @@ class ShogunAgent(BaseAgent):
         )
 
         response = await client.chat.completions.create(
-            model=os.environ["SM_MODEL"],
+            model=SM_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.0,
             max_tokens=500,
@@ -110,8 +114,8 @@ class ShogunAgent(BaseAgent):
         if query:
             try:
                 client = AsyncOpenAI(
-                    base_url=os.environ["SM_MODEL_URL"],
-                    api_key=os.environ["SM_MODEL_API_KEY"],
+                    base_url=SM_MODEL_URL,
+                    api_key=SM_MODEL_API_KEY,
                 )
                 chat_history = self.chat_history_to_string(["user", "assistant"], 5)
                 user_current_query = self.chat_messages[-1]["content"]
@@ -120,7 +124,7 @@ class ShogunAgent(BaseAgent):
                     chat_history=chat_history, user_current_query=user_current_query
                 )
                 response = await client.chat.completions.create(
-                    model=os.environ["SM_MODEL"],
+                    model=SM_MODEL,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.0,
                     max_tokens=500,
@@ -165,11 +169,11 @@ class ShogunAgent(BaseAgent):
 
         try:
             client = AsyncOpenAI(
-                base_url=os.environ["SM_MODEL_URL"],
-                api_key=os.environ["SM_MODEL_API_KEY"],
+                base_url=SM_MODEL_URL,
+                api_key=SM_MODEL_API_KEY,
             )
             response = await client.chat.completions.create(
-                model=os.environ["SM_MODEL"],
+                model=SM_MODEL,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.0,
                 max_tokens=500,
@@ -190,9 +194,7 @@ class ShogunAgent(BaseAgent):
     ) -> str:
         final_answer_parts = []
 
-        client = AsyncOpenAI(
-            base_url=os.environ["MD_MODEL_URL"], api_key=os.environ["MD_MODEL_API_KEY"]
-        )
+        client = AsyncOpenAI(base_url=MD_MODEL_URL, api_key=MD_MODEL_API_KEY)
 
         system_prompt = answer_prompt.format(
             current_date=datetime.now().strftime("%A, %B %d, %Y")
@@ -221,7 +223,7 @@ class ShogunAgent(BaseAgent):
         )
 
         response = await client.chat.completions.create(
-            model=os.environ["MD_MODEL"],
+            model=MD_MODEL,
             messages=messages,
             temperature=0.0,
             max_tokens=2500,
@@ -238,8 +240,8 @@ class ShogunAgent(BaseAgent):
 
     async def gen_answer(self) -> str:
         client = AsyncOpenAI(
-            base_url=os.environ["MD_MODEL_URL"],
-            api_key=os.environ["MD_MODEL_API_KEY"],
+            base_url=MD_MODEL_URL,
+            api_key=MD_MODEL_API_KEY,
         )
 
         system_prompt = general_prompt.format(
@@ -255,7 +257,7 @@ class ShogunAgent(BaseAgent):
         logger.info(messages)
 
         response = await client.chat.completions.create(
-            model=os.environ["MD_MODEL"],
+            model=MD_MODEL,
             messages=messages,
             max_tokens=2500,
             stream=True,
