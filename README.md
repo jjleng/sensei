@@ -1,6 +1,6 @@
 # Sensei Search
 
-Sensei Search is an AI-powered tool designed to deliver the relevant search results.
+Sensei Search is an AI-powered answer engine.
 
 ## 🎥 Demo
 https://www.heysensei.app
@@ -30,8 +30,8 @@ Sensei Search is built using the following technologies:
 
 - Frontend: Next.js, Tailwind CSS
 - Backend: FastAPI, OpenAI client
-- LLMs: Mistral-7b and Command-R
-- Search: SearxNG
+- LLMs: Command-R, Qwen-2-72b-instruct, WizardLM-2 8x22B, Claude Haiku, GPT-3.5-turbo
+- Search: SearxNG, Bing
 - Memory: Redis
 - Deployment: AWS, [Paka](https://github.com/jjleng/paka)
 
@@ -48,7 +48,7 @@ Follow these steps to run Sensei Search locally:
     cd sensei_root_folder/backend/
     mv .env.development.example .env.development
     ```
-    Edit `.env.development` as needed. The example environment assumes you run models through Ollama. Make sure you have reasonably good GPUs to run the command-r model.
+    Edit `.env.development` as needed. The example environment assumes you run models through Ollama. Make sure you have reasonably good GPUs to run the command-r/Qwen-2-72b-instruct/WizardLM-2 8x22B model.
 
 2. No need to do anything for the frontend.
 
