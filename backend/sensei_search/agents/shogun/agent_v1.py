@@ -26,7 +26,7 @@ from sensei_search.config import (
 )
 from sensei_search.logger import logger
 from sensei_search.models import MetaData
-from sensei_search.tools.search import Bing
+from sensei_search.tools.search import get_search_tool
 from sensei_search.tools.search import Input as SearchInput
 from sensei_search.tools.search import TopResults
 from sensei_search.utils import create_slug, to_openapi_spec
@@ -210,7 +210,7 @@ class ShogunAgent(BaseAgent):
             model=MD_MODEL,
             messages=messages,
             max_tokens=2500,
-            tools=[to_openapi_spec(Bing.search)],
+            tools=[to_openapi_spec(get_search_tool().search)],
             tool_choice="auto",
             stream=True,
         )
@@ -254,7 +254,7 @@ class ShogunAgent(BaseAgent):
         for tool_call in tool_calls:
             if tool_call.function.name == "search":
                 args = json.loads(tool_call.function.arguments)
-                search_results = await Bing.search(SearchInput(**args))
+                search_results = await get_search_tool().search(SearchInput(**args))
 
                 if search_results["general"]:
                     # Send the search results to the user ASAP for visual feedback

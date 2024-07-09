@@ -1,5 +1,4 @@
 import asyncio
-import os
 import re
 from datetime import datetime
 from typing import Any, List, Optional
@@ -22,16 +21,13 @@ from sensei_search.config import (
     SM_MODEL_API_KEY,
     SM_MODEL_URL,
 )
-from sensei_search.env import load_envs
 from sensei_search.logger import logger
 from sensei_search.models import MetaData
-from sensei_search.tools import Input as SearxNGInput
 from sensei_search.tools.search import Category
-from sensei_search.tools.search import Input as SearxNGInput
-from sensei_search.tools.search import SearxNG, TopResults
+from sensei_search.tools.search import Input as SearchInput
+from sensei_search.tools.search import get_search_tool, TopResults
 from sensei_search.utils import create_slug
 
-load_envs()
 
 FETCH_WEBPAGE_TIMEOUT = 3
 
@@ -254,9 +250,9 @@ class SamuraiAgent(BaseAgent):
                 categories.append(Category.videos)
 
         if categories:
-            search_input = SearxNGInput(query=query, categories=categories)
+            search_input = SearchInput(query=query, categories=categories)
             # Search for images and videos
-            medium_results = await SearxNG.search(search_input)
+            medium_results = await get_search_tool().search(search_input)
         else:
             medium_results = TopResults(general=[], images=[], videos=[])
         await self.emit_medium_results(medium_results)
@@ -296,11 +292,11 @@ class SamuraiAgent(BaseAgent):
         # We should check if the tags contain 'needs_search'. But for now, we always perform a search
         tags = enriched_query["tags"]
         if tags is None or tags["needs_search"]:
-            search_input = SearxNGInput(query=query, categories=[Category.general])
+            search_input = SearchInput(query=query, categories=[Category.general])
             metadata = MetaData(has_math=True if tags and tags["has_math"] else False)
 
             search_results, _ = await asyncio.gather(
-                SearxNG.search(search_input),
+                get_search_tool().search(search_input),
                 self.emit_metadata(metadata=metadata),
             )
         else:

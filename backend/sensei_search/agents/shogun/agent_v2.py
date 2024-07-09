@@ -27,7 +27,7 @@ from sensei_search.config import (
 )
 from sensei_search.logger import logger
 from sensei_search.models import MetaData
-from sensei_search.tools.search import Bing, Category
+from sensei_search.tools.search import get_search_tool, Category
 from sensei_search.tools.search import Input as SearchInput
 from sensei_search.tools.search import TopResults
 from sensei_search.utils import create_slug
@@ -106,7 +106,7 @@ class ShogunAgent(BaseAgent):
 
         search_input = SearchInput(query=search_query, categories=[Category.general])
 
-        return (await Bing.search(search_input), search_query)
+        return (await get_search_tool().search(search_input), search_query)
 
     async def process_medium(self, query: Optional[str]) -> TopResults:
         medium_results = TopResults(general=[], images=[], videos=[])
@@ -154,7 +154,7 @@ class ShogunAgent(BaseAgent):
                 if categories:
                     search_input = SearchInput(query=query, categories=categories)
                     # Search for images and videos
-                    medium_results = await Bing.search(search_input)
+                    medium_results = await get_search_tool().search(search_input)
 
             except Exception as e:
                 logger.exception(f"Error generating related questions: {e}")
