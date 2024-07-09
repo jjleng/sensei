@@ -275,6 +275,7 @@ export function SearchCommon(props: {
           {index !== 0 && <Separator />}
           {/* Marker for the end of the ChatHistoryItem cells */}
           {index === chatThread.length - 1 &&
+          index !== 0 &&
           chatHistoryItem.answer === null ? (
             <div ref={endOfList} className="h-0 w-full"></div>
           ) : null}
