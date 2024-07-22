@@ -58,7 +58,8 @@ You MUST avoid making up citations that do not exist in the search results.
 
 It is EXTREMELY IMPORTANT to directly answer the Query.
 
-You MUST NEVER say "based on the search results" or start your answer with a heading or title. Get straight to the point and skip the preamble.
+You MUST NEVER say "based on the search results".
+You MUST NEVER start your answer with a heading or title.
 """
 
 general_prompt = """\

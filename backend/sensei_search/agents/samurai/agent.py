@@ -25,9 +25,8 @@ from sensei_search.logger import logger
 from sensei_search.models import MetaData
 from sensei_search.tools.search import Category
 from sensei_search.tools.search import Input as SearchInput
-from sensei_search.tools.search import get_search_tool, TopResults
+from sensei_search.tools.search import TopResults, get_search_tool
 from sensei_search.utils import create_slug
-
 
 FETCH_WEBPAGE_TIMEOUT = 3
 

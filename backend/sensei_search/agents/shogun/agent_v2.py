@@ -27,9 +27,9 @@ from sensei_search.config import (
 )
 from sensei_search.logger import logger
 from sensei_search.models import MetaData
-from sensei_search.tools.search import get_search_tool, Category
+from sensei_search.tools.search import Category
 from sensei_search.tools.search import Input as SearchInput
-from sensei_search.tools.search import TopResults
+from sensei_search.tools.search import TopResults, get_search_tool
 from sensei_search.utils import create_slug
 
 
@@ -201,7 +201,7 @@ class ShogunAgent(BaseAgent):
         )
 
         messages: List[ChatCompletionMessageParam] = [
-            {"role": "system", "content": system_prompt}
+            {"role": "system", "content": system_prompt},
         ]
         for message in self.chat_messages:
             messages.append({"role": message["role"], "content": message["content"]})
