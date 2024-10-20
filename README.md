@@ -2,9 +2,6 @@
 
 Sensei Search is an AI-powered answer engine.
 
-## 🎥 Demo
-https://www.heysensei.app
-
 ## 📸 Screenshots
 
 
